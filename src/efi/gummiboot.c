@@ -524,12 +524,11 @@ static VOID dump_status(Config *config, CHAR16 *loaded_image_path) {
 
         for (i = 0; i < config->entry_count; i++) {
                 ConfigEntry *entry;
-                EFI_DEVICE_PATH *device_path;
-                CHAR16 *str;
 
                 entry = config->entries[i];
                 Print(L"config entry:           %d/%d\n", i+1, config->entry_count);
-                Print(L"file                    '%s'\n", entry->file);
+                if (entry->file)
+                        Print(L"file                    '%s'\n", entry->file);
                 Print(L"title show              '%s'\n", entry->title_show);
                 if (entry->title)
                         Print(L"title                   '%s'\n", entry->title);
@@ -537,16 +536,24 @@ static VOID dump_status(Config *config, CHAR16 *loaded_image_path) {
                         Print(L"version                 '%s'\n", entry->version);
                 if (entry->machine_id)
                         Print(L"machine-id              '%s'\n", entry->machine_id);
-                device_path = DevicePathFromHandle(entry->device);
-                if (device_path) {
-                        str = DevicePathToStr(device_path);
-                        Print(L"device handle           '%s'\n", DevicePathToStr(device_path));
-                        FreePool(str);
+                if (entry->device) {
+                        EFI_DEVICE_PATH *device_path;
+                        CHAR16 *str;
+
+                        device_path = DevicePathFromHandle(entry->device);
+                        if (device_path) {
+                                str = DevicePathToStr(device_path);
+                                Print(L"device handle           '%s'\n", str);
+                                FreePool(str);
+                        }
                 }
-                Print(L"loader                  '%s'\n", entry->loader);
+                if (entry->loader)
+                        Print(L"loader                  '%s'\n", entry->loader);
                 if (entry->options)
                         Print(L"options                 '%s'\n", entry->options);
                 Print(L"auto-select             %s\n", entry->no_autoselect ? L"no" : L"yes");
+                if (entry->call)
+                        Print(L"internal call           yes\n");
                 Print(L"\n--- press key ---\n\n");
                 uefi_call_wrapper(BS->WaitForEvent, 3, 1, &ST->ConIn->WaitForKey, &index);
                 uefi_call_wrapper(ST->ConIn->Reset, 2, ST->ConIn, FALSE);
