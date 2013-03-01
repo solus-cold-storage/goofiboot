@@ -40,9 +40,6 @@
 
 #include "efivars.h"
 
-#define _stringify(s) #s
-#define stringify(s) _stringify(s)
-
 #define ELEMENTSOF(x) (sizeof(x)/sizeof((x)[0]))
 #define streq(a,b) (strcmp((a),(b)) == 0)
 
@@ -1294,7 +1291,7 @@ static int parse_argv(int argc, char *argv[]) {
                         return 0;
 
                 case ARG_VERSION:
-                        printf(stringify(VERSION) "\n");
+                        printf(VERSION "\n");
                         return 0;
 
                 case ARG_PATH:

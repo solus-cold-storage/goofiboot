@@ -69,9 +69,9 @@ efi_loadername = gummiboot$(MACHINE_TYPE_NAME).efi
 efi_sources = src/efi/gummiboot.c
 
 efi_cppflags = \
+	-I$(top_builddir) -include config.h \
 	-I/usr/include/efi \
-	-I/usr/include/efi/$(ARCH) \
-	-DVERSION=$(VERSION)
+	-I/usr/include/efi/$(ARCH)
 
 efi_cflags = \
 	-Wall \

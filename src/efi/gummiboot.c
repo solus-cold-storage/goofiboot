@@ -23,11 +23,8 @@
  *   -- Albert Einstein
  */
 
-#include "efi.h"
-#include "efilib.h"
-
-#define _stringify(s) #s
-#define stringify(s) _stringify(s)
+#include <efi.h>
+#include <efilib.h>
 
 #ifndef EFI_OS_INDICATIONS_BOOT_TO_FW_UI
 #define EFI_OS_INDICATIONS_BOOT_TO_FW_UI 0x0000000000000001ULL
@@ -38,7 +35,7 @@
 #endif
 
 /* magic string to find in the binary image */
-static const char __attribute__((used)) magic[] = "#### LoaderInfo: gummiboot " stringify(VERSION) " ####";
+static const char __attribute__((used)) magic[] = "#### LoaderInfo: gummiboot " VERSION " ####";
 
 /*
  * Allocated random UUID, intended to be shared across tools that implement
@@ -468,7 +465,7 @@ static VOID dump_status(Config *config, CHAR16 *loaded_image_path) {
         uefi_call_wrapper(ST->ConOut->SetAttribute, 2, ST->ConOut, EFI_LIGHTGRAY|EFI_BACKGROUND_BLACK);
         uefi_call_wrapper(ST->ConOut->ClearScreen, 1, ST->ConOut);
 
-        Print(L"gummiboot version:      " stringify(VERSION) "\n");
+        Print(L"gummiboot version:      " VERSION "\n");
         Print(L"loaded image:           %s\n", loaded_image_path);
         Print(L"UEFI version:           %d.%02d\n", ST->Hdr.Revision >> 16, ST->Hdr.Revision & 0xffff);
         Print(L"firmware vendor:        %s\n", ST->FirmwareVendor);
@@ -911,7 +908,7 @@ static BOOLEAN menu_run(Config *config, ConfigEntry **chosen_entry, CHAR16 *load
                         uefi_call_wrapper(ST->ConOut->OutputString, 2, ST->ConOut, clearline+1);
                         break;
                 case 'v':
-                        status = PoolPrint(L"gummiboot " stringify(VERSION) ", UEFI %d.%02d, %s %d.%02d",
+                        status = PoolPrint(L"gummiboot " VERSION ", UEFI %d.%02d, %s %d.%02d",
                                            ST->Hdr.Revision >> 16, ST->Hdr.Revision & 0xffff,
                                            ST->FirmwareVendor, ST->FirmwareRevision >> 16, ST->FirmwareRevision & 0xffff);
                         break;
@@ -1855,7 +1852,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table) {
         InitializeLib(image, sys_table);
         init_usec = time_usec();
         efivar_set_time_usec(L"LoaderTimeInitUSec", init_usec);
-        efivar_set(L"LoaderInfo", L"gummiboot " stringify(VERSION), FALSE);
+        efivar_set(L"LoaderInfo", L"gummiboot " VERSION, FALSE);
         s = PoolPrint(L"%s %d.%02d", ST->FirmwareVendor, ST->FirmwareRevision >> 16, ST->FirmwareRevision & 0xffff);
         efivar_set(L"LoaderFirmwareInfo", s, FALSE);
         FreePool(s);
