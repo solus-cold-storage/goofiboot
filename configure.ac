@@ -56,11 +56,11 @@ SET_ARCH(IA64, ia64*)
 ARCH=`echo $host | sed "s/\(-\).*$//"`
 
 AM_COND_IF(ARCH_I686, [
-	ARCH=ia32
-	MACHINE_TYPE_NAME=ia32])
+        ARCH=ia32
+        MACHINE_TYPE_NAME=ia32])
 
 AM_COND_IF(ARCH_X86_64, [
-	MACHINE_TYPE_NAME=x64])
+        MACHINE_TYPE_NAME=x64])
 
 AC_SUBST([ARCH])
 AC_SUBST([MACHINE_TYPE_NAME])
@@ -74,8 +74,8 @@ AC_SUBST([BIOS])
 dnl Compile EFI stuff is so tricky that it's probably better to check for the
 dnl include files that try to use AC_CHECK_HEADERS to compile any conftest.c
 AC_CHECK_FILES([/usr/include/efi/efi.h
-	        /usr/include/efi/${ARCH}/efibind.h], [],
-	[AC_MSG_ERROR([*** GNU Efi headers not found])])
+                /usr/include/efi/${ARCH}/efibind.h], [],
+        [AC_MSG_ERROR([*** GNU Efi headers not found])])
 
 efiroot=$(echo $(cd /usr/lib/$(gcc -print-multi-os-directory); pwd))
 GNUEFI_LIBS="-L $efiroot"
@@ -83,7 +83,7 @@ GNUEFI_LIBS="-L $efiroot"
 dnl extra objects and linker scripts
 GNUEFI_LDS_DIR="$efiroot"
 if test -d "${efiroot}/gnuefi"; then
-	GNUEFI_LDS_DIR="${efiroot}/gnuefi"
+        GNUEFI_LDS_DIR="${efiroot}/gnuefi"
 fi
 AC_SUBST([GNUEFI_LIBS])
 AC_SUBST([GNUEFI_LDS_DIR])
@@ -100,7 +100,6 @@ fi
 AM_CONDITIONAL(HAVE_BLKID, [test "$have_blkid" = "yes"])
 
 # ------------------------------------------------------------------------------
-
 AC_CONFIG_FILES([
         Makefile
 ])
@@ -116,7 +115,7 @@ AC_MSG_RESULT([
         libexecdir:              ${libexecdir}
         libdir:                  ${libdir}
 
-	blkid:                   ${have_blkid}
+        blkid:                   ${have_blkid}
         efi libs:                ${GNUEFI_LIBS}
         efi lds:                 ${GNUEFI_LDS_DIR}
 
