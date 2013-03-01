@@ -17,7 +17,7 @@
 #  along with systemd; If not, see <http://www.gnu.org/licenses/>.
 #
 ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
-AM_MAKEFLAGS =
+AM_MAKEFLAGS = --no-print-directory
 
 gummibootlibdir = $(libexecdir)/gummiboot
 
@@ -132,5 +132,5 @@ EXTRA_DIST += test/test-create-disk.sh
 test-disk: gummiboot$(MACHINE_TYPE_NAME).efi test/test-create-disk.sh
 	$(AM_V_GEN)test/test-create-disk.sh
 
-test: test-disk
+qemu: test-disk
 	$(QEMU_KVM) -m 256 -L $(BIOS) -snapshot test-disk
