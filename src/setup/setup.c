@@ -428,9 +428,10 @@ static int status_variables(void) {
         n_options = efi_get_boot_options(&options);
         if (n_options < 0) {
                 if (n_options == -ENOENT)
-                        fprintf(stderr, "\tFailed to access EFI variables. Is the \"efivarfs\" filesystem mounted?\n");
+                        fprintf(stderr, "\tFailed to access EFI variables, "
+                                "efivarfs needs to be available at /sys/firmware/efi/efivars/.\n");
                 else
-                        fprintf(stderr, "\tFailed to read EFI boot entries.\n");
+                        fprintf(stderr, "\tFailed to read EFI boot entries: %m\n", strerror(-n_options));
                 r = n_options;
                 goto finish;
         }
@@ -990,8 +991,7 @@ static int install_variables(const char *esp_path,
         }
 
         if (first || r == false) {
-                r = efi_add_boot_option(slot,
-                                        "Linux Boot Manager",
+                r = efi_add_boot_option(slot, "Linux Boot Manager",
                                         part, pstart, psize,
                                         uuid, path);
                 if (r < 0) {
@@ -1000,10 +1000,12 @@ static int install_variables(const char *esp_path,
                 }
                 fprintf(stderr, "Created EFI boot entry \"Linux Boot Manager\".\n");
         }
-        if (is_efi_secure_boot() <= 0)
-                insert_into_order(slot, first);
-        else
-                fprintf(stderr, "EFI Secure Boot is active, skipping EFI boot order registration.\n");
+
+        if (first && is_efi_secure_boot() > 0) {
+                fprintf(stderr, "EFI Secure Boot is active, entry added to the end of the boot order list.\n");
+                first = false;
+        }
+        insert_into_order(slot, first);
 
 finish:
         free(p);
