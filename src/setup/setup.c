@@ -395,7 +395,7 @@ static int print_efi_option(uint16_t id) {
 
         r = efi_get_boot_option(id, &title, partition, &path);
         if (r < 0) {
-                fprintf(stderr, "Failed to read EFI boot entry %i.\n", id);
+                fprintf(stderr, "Failed to read EFI boot entry Boot%04X.\n", id);
                 goto finish;
         }
 
@@ -447,11 +447,8 @@ static int status_variables(void) {
                 goto finish;
         }
 
-        for (i = 0; i < n_order; i++) {
-                r = print_efi_option(order[i]);
-                if (r < 0)
-                        goto finish;
-        }
+        for (i = 0; i < n_order; i++)
+                print_efi_option(order[i]);
 
         if (n_order == n_options)
                 goto finish;
@@ -471,9 +468,7 @@ static int status_variables(void) {
                 if (found)
                         continue;
 
-                r = print_efi_option(options[i]);
-                if (r < 0)
-                        goto finish;
+                print_efi_option(options[i]);
         }
 
         r = 0;
