@@ -1559,7 +1559,7 @@ static VOID config_default_entry_select(Config *config) {
                 }
         }
 
-        /* select the last entry */
+        /* select the last suitable entry */
         i = config->entry_count;
         while (i--) {
                 if (config->entries[i]->no_autoselect)
@@ -1567,8 +1567,6 @@ static VOID config_default_entry_select(Config *config) {
                 config->idx_default = i;
                 return;
         }
-
-        config->idx_default = config->entry_count-1;
 }
 
 /* generate a unique title, avoiding non-distinguishable menu entries */
