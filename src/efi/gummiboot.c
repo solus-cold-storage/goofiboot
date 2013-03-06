@@ -70,7 +70,7 @@ typedef struct {
 typedef struct {
         ConfigEntry **entries;
         UINTN entry_count;
-        UINTN idx_default;
+        INTN idx_default;
         INTN idx_default_efivar;
         UINTN timeout_sec;
         UINTN timeout_sec_config;
@@ -652,7 +652,7 @@ static BOOLEAN menu_run(Config *config, ConfigEntry **chosen_entry, CHAR16 *load
 
         visible_max = y_max - 2;
 
-        if (config->idx_default >= visible_max)
+        if ((UINTN)config->idx_default >= visible_max)
                 idx_first = config->idx_default-1;
         else
                 idx_first = 0;
@@ -1567,6 +1567,9 @@ static VOID config_default_entry_select(Config *config) {
                 config->idx_default = i;
                 return;
         }
+
+        /* no entry found */
+        config->idx_default = -1;
 }
 
 /* generate a unique title, avoiding non-distinguishable menu entries */
@@ -1936,15 +1939,22 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table) {
                 FreePool(b);
         }
 
+        if (config.entry_count == 0) {
+                Print(L"No loader found. Configuration files in \\loader\\entries\\*.conf are needed.");
+                uefi_call_wrapper(BS->Stall, 1, 3 * 1000 * 1000);
+                goto out;
+        }
+
         config_title_generate(&config);
 
         /* select entry by configured pattern or EFI LoaderDefaultEntry= variable*/
         config_default_entry_select(&config);
 
-        if (config.entry_count == 0) {
-                Print(L"No loader found. Configuration files in \\loader\\entries\\*.conf are needed.");
-                uefi_call_wrapper(BS->Stall, 1, 3 * 1000 * 1000);
-                goto out;
+        /* if no configured entry to select from was found, enable the menu */
+        if (config.idx_default == -1) {
+                config.idx_default = 0;
+                if (config.timeout_sec == 0)
+                        config.timeout_sec = 10;
         }
 
         /* show menu when key is pressed or timeout is set */
@@ -1952,7 +1962,8 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table) {
                 EFI_INPUT_KEY key;
 
                 err = uefi_call_wrapper(ST->ConIn->ReadKeyStroke, 2, ST->ConIn, &key);
-                menu = err != EFI_NOT_READY;
+                if (err != EFI_NOT_READY)
+                        menu = TRUE;
         } else
                 menu = TRUE;
 
@@ -1966,6 +1977,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table) {
                         if (!menu_run(&config, &entry, loaded_image_path))
                                 break;
 
+                        /* run special entry like "reboot" */
                         if (entry->call) {
                                 entry->call();
                                 continue;
