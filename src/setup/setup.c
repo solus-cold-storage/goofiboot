@@ -43,6 +43,14 @@
 #define ELEMENTSOF(x) (sizeof(x)/sizeof((x)[0]))
 #define streq(a,b) (strcmp((a),(b)) == 0)
 
+static inline bool streq_ptr(const char *a, const char *b) {
+        if (a && b)
+                return streq(a, b);
+        if (!a && !b)
+                return true;
+        return false;
+}
+
 static inline bool isempty(const char *p) {
         return !p || !p[0];
 }
@@ -825,7 +833,7 @@ static bool same_entry(uint16_t id, const uint8_t uuid[16], const char *path) {
         if (memcmp(uuid, ouuid, 16) != 0)
                 goto finish;
 
-        if (!streq(path, opath))
+        if (!streq_ptr(path, opath))
                 goto finish;
 
         same = true;

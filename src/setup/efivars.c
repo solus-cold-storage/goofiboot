@@ -330,10 +330,8 @@ int efi_get_boot_option(uint16_t id, char **title, uint8_t part_uuid[16], char *
         size_t title_size;
         char *s = NULL;
         char *p = NULL;
-        uint8_t p_uuid[16];
+        uint8_t p_uuid[16] = "";
         int err;
-
-        memset(p_uuid, 0, sizeof(p_uuid));
 
         snprintf(boot_id, sizeof(boot_id), "Boot%04X", id);
         err = efi_get_variable(EFI_VENDOR_GLOBAL, boot_id, (void **) &buf, &l);
