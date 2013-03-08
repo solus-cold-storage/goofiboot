@@ -22,7 +22,7 @@ AM_MAKEFLAGS = --no-print-directory
 gummibootlibdir = $(libexecdir)/gummiboot
 
 AM_CPPFLAGS = -include config.h
-AM_CFLAGS =
+AM_CFLAGS = -Wall -Wextra
 AM_LDFLAGS =
 
 EXTRA_DIST = autogen.sh README LICENSE
