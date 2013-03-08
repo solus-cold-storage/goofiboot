@@ -49,13 +49,13 @@ int is_efi_secure_boot(void) {
         r = efi_get_variable(EFI_VENDOR_GLOBAL, "SecureBoot", &v, &s);
         if (r < 0)
                 return r;
-        b = *(uint8_t *)s;
 
         if (s != 1) {
                 r = -EINVAL;
                 goto finish;
         }
 
+        b = *(uint8_t *)v;
         r = b > 0;
 finish:
         free(v);
