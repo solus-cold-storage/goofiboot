@@ -194,8 +194,10 @@ int efi_set_variable(
         memcpy(buf->buf, value, size);
 
         r = write(fd, buf, sizeof(uint32_t) + size);
-        if (r < 0)
+        if (r < 0) {
+                r = -errno;
                 goto finish;
+        }
 
         if ((size_t)r != sizeof(uint32_t) + size) {
                 r = -EIO;
