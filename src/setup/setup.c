@@ -431,7 +431,7 @@ static int status_variables(void) {
                         fprintf(stderr, "\tFailed to access EFI variables, "
                                 "efivarfs needs to be available at /sys/firmware/efi/efivars/.\n");
                 else
-                        fprintf(stderr, "\tFailed to read EFI boot entries: %m\n", strerror(-n_options));
+                        fprintf(stderr, "\tFailed to read EFI boot entries: %s\n", strerror(-n_options));
                 r = n_options;
                 goto finish;
         }
@@ -1334,7 +1334,8 @@ int main(int argc, char*argv[]) {
         uint64_t pstart = 0;
         uint64_t psize = 0;
         unsigned int i;
-        int r, q;
+        int q;
+        int r;
 
         r = parse_argv(argc, argv);
         if (r <= 0)
