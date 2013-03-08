@@ -457,6 +457,7 @@ static BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max, UINTN 
 
 static VOID dump_status(Config *config, CHAR16 *loaded_image_path) {
         UINTN index;
+        EFI_INPUT_KEY key;
         UINTN i;
         CHAR16 *s;
         CHAR8 *b;
@@ -520,7 +521,7 @@ static VOID dump_status(Config *config, CHAR16 *loaded_image_path) {
 
         Print(L"\n--- press key ---\n\n");
         uefi_call_wrapper(BS->WaitForEvent, 3, 1, &ST->ConIn->WaitForKey, &index);
-        uefi_call_wrapper(ST->ConIn->Reset, 2, ST->ConIn, FALSE);
+        uefi_call_wrapper(ST->ConIn->ReadKeyStroke, 2, ST->ConIn, &key);
 
         for (i = 0; i < config->entry_count; i++) {
                 ConfigEntry *entry;
@@ -556,7 +557,7 @@ static VOID dump_status(Config *config, CHAR16 *loaded_image_path) {
                         Print(L"internal call           yes\n");
                 Print(L"\n--- press key ---\n\n");
                 uefi_call_wrapper(BS->WaitForEvent, 3, 1, &ST->ConIn->WaitForKey, &index);
-                uefi_call_wrapper(ST->ConIn->Reset, 2, ST->ConIn, FALSE);
+                uefi_call_wrapper(ST->ConIn->ReadKeyStroke, 2, ST->ConIn, &key);
         }
 
         uefi_call_wrapper(ST->ConOut->ClearScreen, 1, ST->ConOut);
