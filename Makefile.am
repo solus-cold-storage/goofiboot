@@ -52,7 +52,7 @@ gummiboot_LDADD = \
 	$(BLKID_LIBS)
 
 %.8: %.xml
-	$(AM_V_GEN)xsltproc -o $@ --nonet \
+	$(AM_V_GEN)$(XSLTPROC) -o $@ --nonet \
 	  --stringparam man.output.quietly 1 \
 	  --stringparam man.th.extra1.suppress 1 \
 	  --stringparam man.authors.section.enabled 0 \
@@ -117,6 +117,7 @@ $(efi_solib): $(efi_objects)
 	$(AM_V_CCLD)$(LD) $(efi_ldflags) $(efi_objects) \
 		-o $@ -lefi -lgnuefi $(shell $(CC) -print-libgcc-file-name); \
 	nm -D -u $@ | grep ' U ' && exit 1 || :
+.DELETE_ON_ERROR: $(efi_solib)
 
 $(efi_loadername): $(efi_solib)
 	$(AM_V_GEN) objcopy -j .text -j .sdata -j .data -j .dynamic \
