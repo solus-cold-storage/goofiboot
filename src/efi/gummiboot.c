@@ -1394,7 +1394,7 @@ static UINTN file_read(EFI_FILE_HANDLE dir, const CHAR16 *name, CHAR8 **content)
         EFI_STATUS err;
         UINTN len = 0;
 
-        err = uefi_call_wrapper(dir->Open, 5, dir, &handle, name, EFI_FILE_MODE_READ, 0);
+        err = uefi_call_wrapper(dir->Open, 5, dir, &handle, name, EFI_FILE_MODE_READ, 0ULL);
         if (EFI_ERROR(err))
                 goto out;
 
@@ -1436,7 +1436,7 @@ static VOID config_load(Config *config, EFI_HANDLE *device, EFI_FILE *root_dir, 
         } else
                 config->timeout_sec_efivar = -1;
 
-        err = uefi_call_wrapper(root_dir->Open, 5, root_dir, &entries_dir, L"\\loader\\entries", EFI_FILE_MODE_READ, 0);
+        err = uefi_call_wrapper(root_dir->Open, 5, root_dir, &entries_dir, L"\\loader\\entries", EFI_FILE_MODE_READ, 0ULL);
         if (EFI_ERROR(err) == EFI_SUCCESS) {
                 for (;;) {
                         CHAR16 buf[256];
@@ -1705,7 +1705,7 @@ static BOOLEAN config_entry_add_loader(Config *config, EFI_HANDLE *device, EFI_F
                 return FALSE;
 
         /* check existence */
-        err = uefi_call_wrapper(root_dir->Open, 5, root_dir, &handle, loader, EFI_FILE_MODE_READ, 0);
+        err = uefi_call_wrapper(root_dir->Open, 5, root_dir, &handle, loader, EFI_FILE_MODE_READ, 0ULL);
         if (EFI_ERROR(err))
                 return FALSE;
         uefi_call_wrapper(handle->Close, 1, handle);
