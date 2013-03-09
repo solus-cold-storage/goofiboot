@@ -100,6 +100,17 @@ fi
 AM_CONDITIONAL(HAVE_BLKID, [test "$have_blkid" = "yes"])
 
 # ------------------------------------------------------------------------------
+have_manpages=no
+AC_ARG_ENABLE(manpages, AS_HELP_STRING([--disable-manpages], [disable manpages]))
+AS_IF([test "x$enable_manpages" != xno], [
+        AS_IF([test "x$enable_manpages" = xyes -a "x$XSLTPROC" = x], [
+                AC_MSG_ERROR([*** Manpages requested but xsltproc not found])
+        ])
+        AS_IF([test "x$XSLTPROC" != x], [have_manpages=yes])
+])
+AM_CONDITIONAL(ENABLE_MANPAGES, [test "x$have_manpages" = "xyes"])
+
+# ------------------------------------------------------------------------------
 AC_CONFIG_FILES([
         Makefile
 ])
@@ -109,13 +120,13 @@ AC_MSG_RESULT([
         $PACKAGE_NAME $VERSION
 
         arch:                    $ARCH
-        machine type:            $MACHINE_TYPE_NAME
+        EFI machine type:        $MACHINE_TYPE_NAME
 
         prefix:                  ${prefix}
-
-        blkid:                   ${have_blkid}
         efi libs:                ${GNUEFI_LIBS}
         efi lds:                 ${GNUEFI_LDS_DIR}
+        blkid:                   ${have_blkid}
+        man pages:               ${have_manpages}
 
-        test bios:               ${BIOS}
+        test QEMU bios:          ${BIOS}
 ])

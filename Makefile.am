@@ -15,7 +15,7 @@
 #
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with systemd; If not, see <http://www.gnu.org/licenses/>.
-#
+
 ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 AM_MAKEFLAGS = --no-print-directory
 
@@ -28,11 +28,8 @@ AM_LDFLAGS =
 EXTRA_DIST = autogen.sh README LICENSE
 CLEANFILES =
 
-#
-# gummiboot setup binary
-#
+# ------------------------------------------------------------------------------
 bin_PROGRAMS = gummiboot
-dist_man_MANS = src/setup/gummiboot.8
 
 EXTRA_DIST += src/setup/gummiboot.xml
 CLEANFILES += src/setup/gummiboot.8
@@ -52,6 +49,7 @@ gummiboot_CFLAGS = \
 gummiboot_LDADD = \
 	$(BLKID_LIBS)
 
+if ENABLE_MANPAGES
 %.8: %.xml
 	$(AM_V_GEN)$(XSLTPROC) -o $@ --nonet \
 	  --stringparam man.output.quietly 1 \
@@ -60,12 +58,13 @@ gummiboot_LDADD = \
 	  --stringparam man.copyright.section.enabled 0 \
 	  http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl $<
 
-#
-# EFI compilation
-#
-# This part of the build system uses custom make rules and bypass regular
-# automake to provide absolute control on compiler and linker flags.
-#
+dist_man_MANS = src/setup/gummiboot.8
+endif
+
+# ------------------------------------------------------------------------------
+# EFI compilation -- this part of the build system uses custom make rules and
+# bypasses regular automake to provide absolute control on compiler and linker
+# flags.
 efi_loadername = gummiboot$(MACHINE_TYPE_NAME).efi
 efi_sources = src/efi/gummiboot.c
 
@@ -105,7 +104,7 @@ efi_ldflags = \
 efi_objects = $(addprefix $(top_builddir)/,$(efi_sources:.c=.o))
 efi_solib = $(top_builddir)/src/efi/gummiboot.so
 
-# automake stuff
+# ------------------------------------------------------------------------------
 gummibootlib_DATA = $(efi_loadername)
 CLEANFILES += $(efi_objects) $(efi_solib) $(efi_loadername)
 EXTRA_DIST += $(efi_sources)
@@ -125,9 +124,7 @@ $(efi_loadername): $(efi_solib)
 	  -j .dynsym -j .rel -j .rela -j .reloc -j .eh_frame \
 	  --target=efi-app-$(ARCH) $< $@
 
-#
-# tests
-#
+# ------------------------------------------------------------------------------
 CLEANFILES += test-disk
 EXTRA_DIST += test/test-create-disk.sh
 
