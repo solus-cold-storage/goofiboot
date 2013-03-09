@@ -19,14 +19,8 @@ set -e
 
 autoreconf --force --install --symlink
 
-libdir() {
-        echo $(cd "$1/$(gcc -print-multi-os-directory)"; pwd)
-}
-
 args="\
---sysconfdir=/etc \
---libexecdir=/usr/lib \
---libdir=$(libdir /usr/lib)"
+--prefix=/usr"
 
 if [ "x$1" = "xc" ]; then
         ./configure $args

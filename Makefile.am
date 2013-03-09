@@ -19,7 +19,7 @@
 ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 AM_MAKEFLAGS = --no-print-directory
 
-gummibootlibdir = $(libexecdir)/gummiboot
+gummibootlibdir = $(prefix)/lib/gummiboot
 
 AM_CPPFLAGS = -include config.h
 AM_CFLAGS = -Wall -Wextra
@@ -136,3 +136,8 @@ test-disk: gummiboot$(MACHINE_TYPE_NAME).efi test/test-create-disk.sh
 
 qemu: test-disk
 	$(QEMU_KVM) -m 256 -L $(BIOS) -snapshot test-disk
+
+install-tree: all
+	rm -rf $(abs_srcdir)/install-tree
+	$(MAKE) install DESTDIR=$(abs_srcdir)/install-tree
+	tree $(abs_srcdir)/install-tree

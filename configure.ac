@@ -112,8 +112,6 @@ AC_MSG_RESULT([
         machine type:            $MACHINE_TYPE_NAME
 
         prefix:                  ${prefix}
-        libexecdir:              ${libexecdir}
-        libdir:                  ${libdir}
 
         blkid:                   ${have_blkid}
         efi libs:                ${GNUEFI_LIBS}
