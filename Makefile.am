@@ -46,6 +46,7 @@ gummiboot_CFLAGS = \
 	$(AM_CFLAGS) \
 	-Wno-unused-parameter -D_GNU_SOURCE \
 	-DMACHINE_TYPE_NAME=\"$(MACHINE_TYPE_NAME)\" \
+	-DGUMMIBOOTLIBDIR=\"$(gummibootlibdir)\" \
 	$(BLKID_CFLAGS)
 
 gummiboot_LDADD = \

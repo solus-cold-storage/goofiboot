@@ -740,7 +740,7 @@ static int copy_one_file(const char *esp_path, const char *name, bool force) {
         char *p = NULL, *q = NULL, *v = NULL;
         int r;
 
-        if (asprintf(&p, "/usr/lib/gummiboot/%s", name) < 0) {
+        if (asprintf(&p, GUMMIBOOTLIBDIR "/%s", name) < 0) {
                 fprintf(stderr, "Out of memory.\n");
                 r = -ENOMEM;
                 goto finish;
@@ -795,9 +795,9 @@ static int install_binaries(const char *esp_path, bool force) {
                         return r;
         }
 
-        d = opendir("/usr/lib/gummiboot");
+        d = opendir(GUMMIBOOTLIBDIR);
         if (!d) {
-                fprintf(stderr, "Failed to open /usr/lib/gummiboot: %m\n");
+                fprintf(stderr, "Failed to open "GUMMIBOOTLIBDIR": %m\n");
                 return -errno;
         }
 
