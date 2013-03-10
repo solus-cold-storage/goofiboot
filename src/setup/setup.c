@@ -354,9 +354,9 @@ static int enumerate_binaries(const char *esp_path, const char *path, const char
                         goto finish;
 
                 if (r == 0)
-                        printf("\t%s (Unknown product and version)\n", q);
+                        printf("  %s (Unknown product and version)\n", q);
                 else
-                        printf("\t%s (%s)\n", q, v);
+                        printf("  %s (%s)\n", q, v);
 
                 c++;
 
@@ -382,16 +382,17 @@ static int status_binaries(const char *esp_path) {
 
         r = enumerate_binaries(esp_path, "EFI/gummiboot", NULL);
         if (r == 0)
-                fprintf(stderr, "\tGummiboot not installed in ESP.\n");
+                fprintf(stderr, "Gummiboot not installed in ESP.\n");
         else if (r < 0)
                 return r;
 
         r = enumerate_binaries(esp_path, "EFI/BOOT", "BOOT");
         if (r == 0)
-                fprintf(stderr, "\tNo default/fallback boot loader installed in ESP.\n");
+                fprintf(stderr, "No default/fallback boot loader installed in ESP.\n");
         else if (r < 0)
                 return r;
 
+        printf("\n");
         return 0;
 }
 
@@ -407,13 +408,15 @@ static int print_efi_option(uint16_t id) {
                 goto finish;
         }
 
-        printf("\t%s\n", strna(title));
+        printf("      Title: %s\n", strna(title));
+        printf("     Number: %04X\n", id);
         if (path) {
-                 printf("\t\t%s\n", path);
-                 printf("\t\t/dev/disk/by-partuuid/%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x\n",
+                 printf("     Binary: %s\n", path);
+                 printf("  Partition: /dev/disk/by-partuuid/%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x\n",
                         partition[0], partition[1], partition[2], partition[3], partition[4], partition[5], partition[6], partition[7],
                         partition[8], partition[9], partition[10], partition[11], partition[12], partition[13], partition[14], partition[15]);
         }
+        printf("\n");
 
 finish:
         free(title);
@@ -422,6 +425,7 @@ finish:
 }
 
 static int status_variables(void) {
+        char *s;
         int n_options, n_order;
         uint16_t *options = NULL, *order = NULL;
         int r, i;
@@ -431,26 +435,45 @@ static int status_variables(void) {
                 return 0;
         }
 
-        printf("\nBoot entries found in EFI variables:\n");
+        r = efi_get_variable_string(EFI_VENDOR_LOADER, "LoaderFirmwareType", &s);
+        if (r == 0) {
+                char *s2 = NULL;
 
+                printf("Firmware Information:\n");
+
+                efi_get_variable_string(EFI_VENDOR_LOADER, "LoaderFirmwareInfo", &s2);
+                printf("   Firmware: %s (%s)\n", s, s2);
+                free(s2);
+                free(s);
+
+                r = efi_get_variable_string(EFI_VENDOR_LOADER, "LoaderImageIdentifier", &s);
+                if (r == 0) {
+                        printf("     Loader: %s\n", s);
+                        free(s);
+                }
+
+                printf("\n");
+        }
+
+        printf("Boot entries found in EFI variables:\n");
         n_options = efi_get_boot_options(&options);
         if (n_options < 0) {
                 if (n_options == -ENOENT)
-                        fprintf(stderr, "\tFailed to access EFI variables, "
+                        fprintf(stderr, "Failed to access EFI variables, "
                                 "efivarfs needs to be available at /sys/firmware/efi/efivars/.\n");
                 else
-                        fprintf(stderr, "\tFailed to read EFI boot entries: %s\n", strerror(-n_options));
+                        fprintf(stderr, "Failed to read EFI boot entries: %s\n", strerror(-n_options));
                 r = n_options;
                 goto finish;
         }
 
         n_order = efi_get_boot_order(&order);
         if (n_order == -ENOENT) {
-                fprintf(stderr, "\tNo boot entries registered in EFI variables.\n");
+                fprintf(stderr, "No boot entries registered in EFI variables.\n");
                 r = 0;
                 goto finish;
         } else if (n_order < 0) {
-                fprintf(stderr, "\tFailed to read EFI boot order.\n");
+                fprintf(stderr, "Failed to read EFI boot order.\n");
                 r = n_order;
                 goto finish;
         }
@@ -458,11 +481,7 @@ static int status_variables(void) {
         for (i = 0; i < n_order; i++)
                 print_efi_option(order[i]);
 
-        if (n_order == n_options)
-                goto finish;
-
-        printf("\nInactive boot entries found in EFI variables:\n");
-
+        printf("Inactive boot entries found in EFI variables:\n");
         for (i = 0; i < n_options; i++) {
                 int j;
                 bool found = false;
