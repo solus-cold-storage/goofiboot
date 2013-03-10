@@ -477,7 +477,7 @@ static VOID dump_status(Config *config, CHAR16 *loaded_image_path) {
         }
 
         if (efivar_get_raw(&global_guid, L"SetupMode", &b, &size) == EFI_SUCCESS) {
-                Print(L"SetupMode:              %s\n", *b > 0 ? L"enabled" : L"disabled");
+                Print(L"SetupMode:              %s\n", *b > 0 ? L"setup" : L"user");
                 FreePool(b);
         }
 
