@@ -42,6 +42,7 @@
 
 #define ELEMENTSOF(x) (sizeof(x)/sizeof((x)[0]))
 #define streq(a,b) (strcmp((a),(b)) == 0)
+#define UUID_EMPTY ((uint8_t[16]) {})
 
 static inline bool streq_ptr(const char *a, const char *b) {
         if (a && b)
@@ -410,12 +411,13 @@ static int print_efi_option(uint16_t id) {
 
         printf("        Title: %s\n", strna(title));
         printf("       Number: %04X\n", id);
-        if (path) {
+        if (path)
                  printf("       Binary: %s\n", path);
+
+        if (memcmp(partition, UUID_EMPTY, 16) != 0)
                  printf("    Partition: /dev/disk/by-partuuid/%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x\n",
                         partition[0], partition[1], partition[2], partition[3], partition[4], partition[5], partition[6], partition[7],
                         partition[8], partition[9], partition[10], partition[11], partition[12], partition[13], partition[14], partition[15]);
-        }
 
 finish:
         printf("\n");
