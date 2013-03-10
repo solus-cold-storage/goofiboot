@@ -31,9 +31,6 @@ CLEANFILES =
 # ------------------------------------------------------------------------------
 bin_PROGRAMS = gummiboot
 
-EXTRA_DIST += src/setup/gummiboot.xml
-CLEANFILES += src/setup/gummiboot.8
-
 gummiboot_SOURCES = \
 	src/setup/setup.c \
 	src/setup/efivars.c \
@@ -58,8 +55,11 @@ if ENABLE_MANPAGES
 	  --stringparam man.copyright.section.enabled 0 \
 	  http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl $<
 
-dist_man_MANS = src/setup/gummiboot.8
+dist_man_MANS = man/gummiboot.8
 endif
+
+EXTRA_DIST += man/gummiboot.xml
+CLEANFILES += man/gummiboot.8
 
 # ------------------------------------------------------------------------------
 # EFI compilation -- this part of the build system uses custom make rules and
