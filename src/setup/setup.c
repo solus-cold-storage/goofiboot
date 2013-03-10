@@ -452,7 +452,7 @@ static int status_variables(void) {
                 r = efi_get_variable_string(EFI_VENDOR_LOADER, "LoaderImageIdentifier", &s);
                 if (r == 0) {
                         tilt_backslashes(s);
-                        printf("       Loader: %s\n", s);
+                        printf("       Binary: %s\n", s);
                         free(s);
                 }
 
