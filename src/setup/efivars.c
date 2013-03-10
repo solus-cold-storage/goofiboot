@@ -38,7 +38,7 @@ bool is_efi_boot(void) {
         return access("/sys/firmware/efi", F_OK) >= 0;
 }
 
-int read_flag(const char *varname) {
+static int read_flag(const char *varname) {
         int r;
         void *v;
         size_t s;
