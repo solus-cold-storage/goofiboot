@@ -408,11 +408,11 @@ static int print_efi_option(uint16_t id) {
                 goto finish;
         }
 
-        printf("      Title: %s\n", strna(title));
-        printf("     Number: %04X\n", id);
+        printf("        Title: %s\n", strna(title));
+        printf("       Number: %04X\n", id);
         if (path) {
-                 printf("     Binary: %s\n", path);
-                 printf("  Partition: /dev/disk/by-partuuid/%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x\n",
+                 printf("       Binary: %s\n", path);
+                 printf("    Partition: /dev/disk/by-partuuid/%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x\n",
                         partition[0], partition[1], partition[2], partition[3], partition[4], partition[5], partition[6], partition[7],
                         partition[8], partition[9], partition[10], partition[11], partition[12], partition[13], partition[14], partition[15]);
         }
@@ -438,20 +438,29 @@ static int status_variables(void) {
         r = efi_get_variable_string(EFI_VENDOR_LOADER, "LoaderFirmwareType", &s);
         if (r == 0) {
                 char *s2 = NULL;
+                int flag;
 
                 printf("Firmware Information:\n");
 
                 efi_get_variable_string(EFI_VENDOR_LOADER, "LoaderFirmwareInfo", &s2);
-                printf("   Firmware: %s (%s)\n", s, s2);
+                printf("     Firmware: %s (%s)\n", s, s2);
                 free(s2);
                 free(s);
 
                 r = efi_get_variable_string(EFI_VENDOR_LOADER, "LoaderImageIdentifier", &s);
                 if (r == 0) {
                         tilt_backslashes(s);
-                        printf("     Loader: %s\n", s);
+                        printf("       Loader: %s\n", s);
                         free(s);
                 }
+
+                flag = is_efi_secure_boot();
+                if (flag >= 0)
+                        printf("  Secure Boot: %s\n", is_efi_secure_boot() ? "enabled" : "disabled");
+
+                flag = is_efi_secure_boot_setup_mode();
+                if (flag >= 0)
+                        printf("   Setup Mode: %s\n", is_efi_secure_boot() ? "enabled" : "disabled");
 
                 printf("\n");
         }
@@ -1024,10 +1033,6 @@ static int install_variables(const char *esp_path,
                 fprintf(stderr, "Created EFI boot entry \"Linux Boot Manager\".\n");
         }
 
-        if (first && is_efi_secure_boot() > 0) {
-                fprintf(stderr, "EFI Secure Boot is active, entry added to the end of the boot order list.\n");
-                first = false;
-        }
         insert_into_order(slot, first);
 
 finish:

@@ -34,6 +34,7 @@
 
 bool is_efi_boot(void);
 int is_efi_secure_boot(void);
+int is_efi_secure_boot_setup_mode(void);
 int efi_get_variable(const uint8_t vendor[16], const char *name, void **value, size_t *size);
 int efi_set_variable( const uint8_t vendor[16], const char *name, const void *value, size_t size);
 int efi_get_variable_string(const uint8_t vendor[16], const char *name, char **p);

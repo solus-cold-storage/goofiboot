@@ -38,13 +38,13 @@ bool is_efi_boot(void) {
         return access("/sys/firmware/efi", F_OK) >= 0;
 }
 
-int is_efi_secure_boot(void) {
+int read_flag(const char *varname) {
         int r;
         void *v;
         size_t s;
         uint8_t b;
 
-        r = efi_get_variable(EFI_VENDOR_GLOBAL, "SecureBoot", &v, &s);
+        r = efi_get_variable(EFI_VENDOR_GLOBAL, varname, &v, &s);
         if (r < 0)
                 return r;
 
@@ -58,6 +58,14 @@ int is_efi_secure_boot(void) {
 finish:
         free(v);
         return r;
+}
+
+int is_efi_secure_boot(void) {
+        return read_flag("SecureBoot");
+}
+
+int is_efi_secure_boot_setup_mode(void) {
+        return read_flag("SetupMode");
 }
 
 int efi_get_variable(

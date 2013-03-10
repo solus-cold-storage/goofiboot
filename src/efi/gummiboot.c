@@ -474,12 +474,13 @@ static VOID dump_status(Config *config, CHAR16 *loaded_image_path) {
         if (efivar_get_raw(&global_guid, L"SecureBoot", &b, &size) == EFI_SUCCESS) {
                 Print(L"SecureBoot:             %s\n", *b > 0 ? L"enabled" : L"disabled");
                 FreePool(b);
-
-                if (efivar_get_raw(&global_guid, L"SetupMode", &b, &size) == EFI_SUCCESS) {
-                        Print(L"SetupMode:              %s\n", *b > 0 ? L"enabled" : L"disabled");
-                        FreePool(b);
-                }
         }
+
+        if (efivar_get_raw(&global_guid, L"SetupMode", &b, &size) == EFI_SUCCESS) {
+                Print(L"SetupMode:              %s\n", *b > 0 ? L"enabled" : L"disabled");
+                FreePool(b);
+        }
+
         if (efivar_get_raw(&global_guid, L"OsIndicationsSupported", &b, &size) == EFI_SUCCESS) {
                 Print(L"OsIndicationsSupported: %d\n", (UINT64)*b);
                 FreePool(b);
