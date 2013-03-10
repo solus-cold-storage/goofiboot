@@ -50,3 +50,5 @@ int efi_get_boot_order(uint16_t **order);
 int efi_set_boot_order(uint16_t *order, size_t n);
 
 char *utf16_to_utf8(const void *s, size_t length);
+char *tilt_backslashes(char *s);
+uint16_t *tilt_slashes(uint16_t *s);

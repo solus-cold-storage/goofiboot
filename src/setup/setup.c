@@ -404,7 +404,7 @@ static int print_efi_option(uint16_t id) {
 
         r = efi_get_boot_option(id, &title, partition, &path);
         if (r < 0) {
-                fprintf(stderr, "Failed to read EFI boot entry Boot%04X.\n", id);
+                fprintf(stderr, "Failed to read EFI boot entry Boot%04X: %s.\n", id, strerror(-r));
                 goto finish;
         }
 
@@ -416,9 +416,9 @@ static int print_efi_option(uint16_t id) {
                         partition[0], partition[1], partition[2], partition[3], partition[4], partition[5], partition[6], partition[7],
                         partition[8], partition[9], partition[10], partition[11], partition[12], partition[13], partition[14], partition[15]);
         }
-        printf("\n");
 
 finish:
+        printf("\n");
         free(title);
         free(path);
         return r;
@@ -448,6 +448,7 @@ static int status_variables(void) {
 
                 r = efi_get_variable_string(EFI_VENDOR_LOADER, "LoaderImageIdentifier", &s);
                 if (r == 0) {
+                        tilt_backslashes(s);
                         printf("     Loader: %s\n", s);
                         free(s);
                 }

@@ -268,7 +268,7 @@ static void id128_to_efi_guid(const uint8_t *bytes, void *guid) {
         memcpy(uuid->u4, bytes+8, sizeof(uuid->u4));
 }
 
-static char *tilt_backslashes(char *s) {
+char *tilt_backslashes(char *s) {
         char *p;
 
         for (p = s; *p; p++)
@@ -278,7 +278,7 @@ static char *tilt_backslashes(char *s) {
         return s;
 }
 
-static uint16_t *tilt_slashes(uint16_t *s) {
+uint16_t *tilt_slashes(uint16_t *s) {
         uint16_t *p;
 
         for (p = s; *p; p++)
