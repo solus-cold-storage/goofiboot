@@ -456,11 +456,11 @@ static int status_variables(void) {
 
                 flag = is_efi_secure_boot();
                 if (flag >= 0)
-                        printf("  Secure Boot: %s\n", is_efi_secure_boot() ? "enabled" : "disabled");
+                        printf("  Secure Boot: %s\n", flag ? "enabled" : "disabled");
 
                 flag = is_efi_secure_boot_setup_mode();
                 if (flag >= 0)
-                        printf("   Setup Mode: %s\n", is_efi_secure_boot_setup_mode() ? "setup" : "user");
+                        printf("   Setup Mode: %s\n", flag ? "setup" : "user");
 
                 printf("\n");
         }
