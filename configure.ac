@@ -17,7 +17,7 @@
 #  along with systemd; If not, see <http://www.gnu.org/licenses/>.
 
 AC_INIT([gummiboot],
-        [27],
+        [28],
         [systemd-devel@lists.freedesktop.org],
         [gummiboot],
         [http://freedesktop.org/wiki/Software/gummiboot])
