@@ -900,6 +900,11 @@ static int find_slot(const uint8_t uuid[16], const char *path, uint16_t *id) {
                         goto finish;
                 }
 
+        /* use the next one */
+        if (i == 0xffff)
+                return -ENOSPC;
+        new_id = i;
+
 finish:
         *id = new_id;
         free(options);
