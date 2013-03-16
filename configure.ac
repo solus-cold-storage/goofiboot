@@ -106,14 +106,7 @@ AS_IF([test "x$enable_manpages" != xno], [
         AS_IF([test "x$enable_manpages" = xyes -a "x$XSLTPROC" = x], [
                 AC_MSG_ERROR([*** Manpages requested but xsltproc not found])
         ])
-        AC_CHECK_FILES([
-                /usr/share/sgml/docbook/xsl-stylesheets/manpages/docbook.xsl
-                /usr/share/sgml/docbook/stylesheet/xsl/nwalsh/manpages/docbook.xsl
-                ],[have_docbook=yes])
-        AS_IF([test "x$enable_manpages" = xyes -a "x$have_docbook" = x], [
-                AC_MSG_ERROR([*** Manpages requested but docbook not found])
-        ])
-        AS_IF([test "x$XSLTPROC" != x -a "x$have_docbook" != x], [have_manpages=yes])
+        AS_IF([test "x$XSLTPROC" != x], [have_manpages=yes])
 ])
 AM_CONDITIONAL(ENABLE_MANPAGES, [test "x$have_manpages" = "xyes"])
 
