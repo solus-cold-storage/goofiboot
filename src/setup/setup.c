@@ -482,8 +482,7 @@ static int status_variables(void) {
         n_order = efi_get_boot_order(&order);
         if (n_order == -ENOENT) {
                 fprintf(stderr, "No boot entries registered in EFI variables.\n");
-                r = 0;
-                goto finish;
+                n_order = 0;
         } else if (n_order < 0) {
                 fprintf(stderr, "Failed to read EFI boot order.\n");
                 r = n_order;
