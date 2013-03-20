@@ -330,7 +330,7 @@ struct device_path {
         };
 } __attribute__((packed));
 
-int efi_get_boot_option(uint16_t id, char **title, uint8_t part_uuid[16], char **path) {
+int efi_get_boot_option(uint16_t id, char **title, uint8_t part_uuid[16], char **path, bool *active) {
         char boot_id[9];
         uint8_t *buf = NULL;
         size_t l;
@@ -417,6 +417,9 @@ int efi_get_boot_option(uint16_t id, char **title, uint8_t part_uuid[16], char *
                 *path = p;
         else
                 free(p);
+
+        if (active)
+                *active = !!header->attr & LOAD_OPTION_ACTIVE;
 
         free(buf);
         return 0;

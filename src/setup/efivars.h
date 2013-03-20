@@ -38,7 +38,7 @@ int is_efi_secure_boot_setup_mode(void);
 int efi_get_variable(const uint8_t vendor[16], const char *name, void **value, size_t *size);
 int efi_set_variable( const uint8_t vendor[16], const char *name, const void *value, size_t size);
 int efi_get_variable_string(const uint8_t vendor[16], const char *name, char **p);
-int efi_get_boot_option(uint16_t id, char **title, uint8_t part_uuid[16], char **path);
+int efi_get_boot_option(uint16_t id, char **title, uint8_t part_uuid[16], char **path, bool *active);
 
 int efi_get_boot_options(uint16_t **options);
 int efi_add_boot_option(uint16_t id, const char *title,

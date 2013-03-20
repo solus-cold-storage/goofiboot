@@ -397,30 +397,31 @@ static int status_binaries(const char *esp_path) {
         return 0;
 }
 
-static int print_efi_option(uint16_t id) {
+static int print_efi_option(uint16_t id, bool in_order) {
         char *title = NULL;
         char *path = NULL;
         uint8_t partition[16];
+        bool active;
         int r = 0;
 
-        r = efi_get_boot_option(id, &title, partition, &path);
-        if (r < 0) {
-                fprintf(stderr, "Failed to read EFI boot entry Boot%04X: %s.\n", id, strerror(-r));
+        r = efi_get_boot_option(id, &title, partition, &path, &active);
+        if (r < 0)
                 goto finish;
-        }
+
+        /* print only configured entries with partition information */
+        if (!path || memcmp(partition, UUID_EMPTY, 16) == 0)
+                return 0;
 
         printf("        Title: %s\n", strna(title));
         printf("       Number: %04X\n", id);
-        if (path)
-                 printf("       Binary: %s\n", path);
-
-        if (memcmp(partition, UUID_EMPTY, 16) != 0)
-                 printf("    Partition: /dev/disk/by-partuuid/%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x\n",
-                        partition[0], partition[1], partition[2], partition[3], partition[4], partition[5], partition[6], partition[7],
-                        partition[8], partition[9], partition[10], partition[11], partition[12], partition[13], partition[14], partition[15]);
+        printf("        Flags: %sactive%s\n", active ? "" : "in", in_order ? ", in-order" : "");
+        printf("       Binary: %s\n", path);
+        printf("    Partition: /dev/disk/by-partuuid/%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x\n",
+               partition[0], partition[1], partition[2], partition[3], partition[4], partition[5], partition[6], partition[7],
+               partition[8], partition[9], partition[10], partition[11], partition[12], partition[13], partition[14], partition[15]);
+        printf("\n");
 
 finish:
-        printf("\n");
         free(title);
         free(path);
         return r;
@@ -452,7 +453,7 @@ static int status_variables(void) {
                 r = efi_get_variable_string(EFI_VENDOR_LOADER, "LoaderImageIdentifier", &s);
                 if (r == 0) {
                         tilt_backslashes(s);
-                        printf("       Binary: %s\n", s);
+                        printf("       Loader: %s\n", s);
                         free(s);
                 }
 
@@ -467,7 +468,6 @@ static int status_variables(void) {
                 printf("\n");
         }
 
-        printf("Boot entries found in EFI variables:\n");
         n_options = efi_get_boot_options(&options);
         if (n_options < 0) {
                 if (n_options == -ENOENT)
@@ -479,9 +479,9 @@ static int status_variables(void) {
                 goto finish;
         }
 
+        printf("Boot loader entries found in EFI variables:\n");
         n_order = efi_get_boot_order(&order);
         if (n_order == -ENOENT) {
-                fprintf(stderr, "No boot entries registered in EFI variables.\n");
                 n_order = 0;
         } else if (n_order < 0) {
                 fprintf(stderr, "Failed to read EFI boot order.\n");
@@ -489,10 +489,11 @@ static int status_variables(void) {
                 goto finish;
         }
 
+        /* print entries in BootOrder first */
         for (i = 0; i < n_order; i++)
-                print_efi_option(order[i]);
+                print_efi_option(order[i], true);
 
-        printf("Inactive boot entries found in EFI variables:\n");
+        /* print remaining entries */
         for (i = 0; i < n_options; i++) {
                 int j;
                 bool found = false;
@@ -506,7 +507,7 @@ static int status_variables(void) {
                 if (found)
                         continue;
 
-                print_efi_option(options[i]);
+                print_efi_option(options[i], false);
         }
 
         r = 0;
@@ -857,7 +858,7 @@ static bool same_entry(uint16_t id, const uint8_t uuid[16], const char *path) {
         int err;
         bool same = false;
 
-        err = efi_get_boot_option(id, NULL, ouuid, &opath);
+        err = efi_get_boot_option(id, NULL, ouuid, &opath, NULL);
         if (err < 0)
                 return false;
         if (memcmp(uuid, ouuid, 16) != 0)
