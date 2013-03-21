@@ -76,6 +76,7 @@ typedef struct {
         UINTN timeout_sec_config;
         INTN timeout_sec_efivar;
         CHAR16 *entry_default_pattern;
+        CHAR16 *entry_oneshot;
         CHAR16 *options_edit;
         CHAR16 *entries_auto;
 } Config;
@@ -503,10 +504,8 @@ static VOID dump_status(Config *config, CHAR16 *loaded_image_path) {
 
         if (efivar_get_int(L"LoaderConfigTimeout", &i) == EFI_SUCCESS)
                 Print(L"LoaderConfigTimeout:    %d\n", i);
-        if (efivar_get(L"LoaderEntryOneShot", &s) == EFI_SUCCESS) {
-                Print(L"LoaderEntryOneShot:     %s\n", s);
-                FreePool(s);
-        }
+        if (config->entry_oneshot)
+                Print(L"LoaderEntryOneShot:     %s\n", config->entry_oneshot);
         if (efivar_get(L"LoaderDeviceIdentifier", &s) == EFI_SUCCESS) {
                 Print(L"LoaderDeviceIdentifier: %s\n", s);
                 FreePool(s);
@@ -1512,6 +1511,8 @@ static VOID config_default_entry_select(Config *config) {
                                 break;
                         }
                 }
+
+                config->entry_oneshot = StrDuplicate(var);
                 efivar_set(L"LoaderEntryOneShot", NULL, TRUE);
                 FreePool(var);
                 if (found)
@@ -1843,6 +1844,7 @@ static VOID config_free(Config *config) {
         FreePool(config->entries);
         FreePool(config->entry_default_pattern);
         FreePool(config->options_edit);
+        FreePool(config->entry_oneshot);
         FreePool(config->entries_auto);
 }
 
