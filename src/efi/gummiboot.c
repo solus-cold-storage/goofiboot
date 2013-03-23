@@ -1966,7 +1966,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table) {
                 EFI_INPUT_KEY key;
 
                 err = uefi_call_wrapper(ST->ConIn->ReadKeyStroke, 2, ST->ConIn, &key);
-                if (err != EFI_NOT_READY)
+                if (err == EFI_SUCCESS)
                         menu = TRUE;
         } else
                 menu = TRUE;
