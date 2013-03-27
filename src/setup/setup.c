@@ -354,13 +354,12 @@ static int enumerate_binaries(const char *esp_path, const char *path, const char
                 if (r < 0)
                         goto finish;
 
-                if (r == 0)
-                        printf("  %s (Unknown product and version)\n", q);
-                else
-                        printf("  %s (%s)\n", q, v);
+                printf("       Binary: %s\n", q);
+                if (r > 0)
+                        printf("      Version: %s\n", v);
+                printf("\n");
 
                 c++;
-
                 free(v);
         }
 
@@ -393,7 +392,6 @@ static int status_binaries(const char *esp_path) {
         else if (r < 0)
                 return r;
 
-        printf("\n");
         return 0;
 }
 
@@ -413,7 +411,7 @@ static int print_efi_option(uint16_t id, bool in_order) {
                 return 0;
 
         printf("        Title: %s\n", strna(title));
-        printf("       Number: %04X\n", id);
+        printf("           ID: 0x%04X\n", id);
         printf("        Flags: %sactive%s\n", active ? "" : "in", in_order ? ", in-order" : "");
         printf("       Binary: %s\n", path);
         printf("    Partition: /dev/disk/by-partuuid/%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x\n",
