@@ -23,9 +23,11 @@ gummibootlibdir = $(prefix)/lib/gummiboot
 
 AM_CPPFLAGS = -include config.h
 AM_CFLAGS = \
+	-D_GNU_SOURCE \
 	-Wall \
 	-Wextra \
-	-Wmissing-prototypes
+	-Wmissing-prototypes \
+	-Wno-unused-parameter
 AM_LDFLAGS =
 
 EXTRA_DIST = autogen.sh README LICENSE
@@ -41,7 +43,6 @@ gummiboot_SOURCES = \
 
 gummiboot_CFLAGS = \
 	$(AM_CFLAGS) \
-	-Wno-unused-parameter -D_GNU_SOURCE \
 	-DMACHINE_TYPE_NAME=\"$(MACHINE_TYPE_NAME)\" \
 	-DGUMMIBOOTLIBDIR=\"$(gummibootlibdir)\" \
 	$(BLKID_CFLAGS)
