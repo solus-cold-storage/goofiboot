@@ -355,9 +355,9 @@ static int enumerate_binaries(const char *esp_path, const char *path, const char
                         goto finish;
 
                 if (r > 0)
-                        printf("         File: └─%s/%s (%s)\n", path, de->d_name, v);
+                        printf("         File: └─/%s/%s (%s)\n", path, de->d_name, v);
                 else
-                        printf("         File: └─%s/%s\n", path, de->d_name);
+                        printf("         File: └─/%s/%s\n", path, de->d_name);
 
                 c++;
                 free(v);
