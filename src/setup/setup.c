@@ -354,10 +354,10 @@ static int enumerate_binaries(const char *esp_path, const char *path, const char
                 if (r < 0)
                         goto finish;
 
-                printf("       Binary: %s\n", q);
                 if (r > 0)
-                        printf("      Version: %s\n", v);
-                printf("\n");
+                        printf("         File: └─%s (%s)\n", path, v);
+                else
+                        printf("         File: └─%s\n", path);
 
                 c++;
                 free(v);
@@ -371,14 +371,17 @@ finish:
 
         free(p);
         free(q);
-
         return r;
 }
 
-static int status_binaries(const char *esp_path) {
+static int status_binaries(const char *esp_path, uint8_t partition[16]) {
         int r;
 
-        printf("Boot loader binaries found in ESP:\n");
+        printf("Boot loader binaries found:\n");
+
+        printf("          ESP: /dev/disk/by-partuuid/%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x\n",
+               partition[0], partition[1], partition[2], partition[3], partition[4], partition[5], partition[6], partition[7],
+               partition[8], partition[9], partition[10], partition[11], partition[12], partition[13], partition[14], partition[15]);
 
         r = enumerate_binaries(esp_path, "EFI/gummiboot", NULL);
         if (r == 0)
@@ -392,6 +395,7 @@ static int status_binaries(const char *esp_path) {
         else if (r < 0)
                 return r;
 
+        printf("\n");
         return 0;
 }
 
@@ -413,10 +417,10 @@ static int print_efi_option(uint16_t id, bool in_order) {
         printf("        Title: %s\n", strna(title));
         printf("           ID: 0x%04X\n", id);
         printf("        Flags: %sactive%s\n", active ? "" : "in", in_order ? ", in-order" : "");
-        printf("       Binary: %s\n", path);
-        printf("    Partition: /dev/disk/by-partuuid/%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x\n",
+        printf("          ESP: /dev/disk/by-partuuid/%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x\n",
                partition[0], partition[1], partition[2], partition[3], partition[4], partition[5], partition[6], partition[7],
                partition[8], partition[9], partition[10], partition[11], partition[12], partition[13], partition[14], partition[15]);
+        printf("         File: └─%s\n", path);
         printf("\n");
 
 finish:
@@ -1410,7 +1414,7 @@ int main(int argc, char*argv[]) {
 
         switch (arg_action) {
         case ACTION_STATUS:
-                r = status_binaries(arg_path);
+                r = status_binaries(arg_path, uuid);
                 if (r < 0)
                         goto finish;
 
