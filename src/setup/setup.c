@@ -355,9 +355,9 @@ static int enumerate_binaries(const char *esp_path, const char *path, const char
                         goto finish;
 
                 if (r > 0)
-                        printf("         File: └─%s (%s)\n", path, v);
+                        printf("         File: └─%s/%s (%s)\n", path, de->d_name, v);
                 else
-                        printf("         File: └─%s\n", path);
+                        printf("         File: └─%s/%s\n", path, de->d_name);
 
                 c++;
                 free(v);
@@ -377,7 +377,7 @@ finish:
 static int status_binaries(const char *esp_path, uint8_t partition[16]) {
         int r;
 
-        printf("Boot loader binaries found:\n");
+        printf("Boot Loader Binaries:\n");
 
         printf("          ESP: /dev/disk/by-partuuid/%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x\n",
                partition[0], partition[1], partition[2], partition[3], partition[4], partition[5], partition[6], partition[7],
@@ -416,7 +416,7 @@ static int print_efi_option(uint16_t id, bool in_order) {
 
         printf("        Title: %s\n", strna(title));
         printf("           ID: 0x%04X\n", id);
-        printf("        Flags: %sactive%s\n", active ? "" : "in", in_order ? ", in-order" : "");
+        printf("        Flags: %sactive%s\n", active ? "" : "in", in_order ? ", boot-order" : "");
         printf("    Partition: /dev/disk/by-partuuid/%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x\n",
                partition[0], partition[1], partition[2], partition[3], partition[4], partition[5], partition[6], partition[7],
                partition[8], partition[9], partition[10], partition[11], partition[12], partition[13], partition[14], partition[15]);
@@ -430,7 +430,6 @@ finish:
 }
 
 static int status_variables(void) {
-        char *s;
         int n_options, n_order;
         uint16_t *options = NULL, *order = NULL;
         int r, i;
@@ -438,36 +437,6 @@ static int status_variables(void) {
         if (!is_efi_boot()) {
                 fprintf(stderr, "Not booted with EFI, not showing EFI variables.\n");
                 return 0;
-        }
-
-        r = efi_get_variable_string(EFI_VENDOR_LOADER, "LoaderFirmwareType", &s);
-        if (r == 0) {
-                char *s2 = NULL;
-                int flag;
-
-                printf("Firmware Information:\n");
-
-                efi_get_variable_string(EFI_VENDOR_LOADER, "LoaderFirmwareInfo", &s2);
-                printf("     Firmware: %s (%s)\n", s, s2);
-                free(s2);
-                free(s);
-
-                r = efi_get_variable_string(EFI_VENDOR_LOADER, "LoaderImageIdentifier", &s);
-                if (r == 0) {
-                        tilt_backslashes(s);
-                        printf("       Loader: %s\n", s);
-                        free(s);
-                }
-
-                flag = is_efi_secure_boot();
-                if (flag >= 0)
-                        printf("  Secure Boot: %s\n", flag ? "enabled" : "disabled");
-
-                flag = is_efi_secure_boot_setup_mode();
-                if (flag >= 0)
-                        printf("   Setup Mode: %s\n", flag ? "setup" : "user");
-
-                printf("\n");
         }
 
         n_options = efi_get_boot_options(&options);
@@ -481,7 +450,7 @@ static int status_variables(void) {
                 goto finish;
         }
 
-        printf("Boot loader entries found in EFI variables:\n");
+        printf("Boot Loader Entries in EFI Variables:\n");
         n_order = efi_get_boot_order(&order);
         if (n_order == -ENOENT) {
                 n_order = 0;
