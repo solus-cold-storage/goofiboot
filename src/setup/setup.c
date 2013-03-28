@@ -417,7 +417,7 @@ static int print_efi_option(uint16_t id, bool in_order) {
         printf("        Title: %s\n", strna(title));
         printf("           ID: 0x%04X\n", id);
         printf("        Flags: %sactive%s\n", active ? "" : "in", in_order ? ", in-order" : "");
-        printf("          ESP: /dev/disk/by-partuuid/%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x\n",
+        printf("    Partition: /dev/disk/by-partuuid/%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x\n",
                partition[0], partition[1], partition[2], partition[3], partition[4], partition[5], partition[6], partition[7],
                partition[8], partition[9], partition[10], partition[11], partition[12], partition[13], partition[14], partition[15]);
         printf("         File: └─%s\n", path);
