@@ -859,7 +859,7 @@ static int find_slot(const uint8_t uuid[16], const char *path, uint16_t *id) {
         /* find already existing gummiboot entry */
         for (i = 0; i < n_options; i++)
                 if (same_entry(options[i], uuid, path)) {
-                        new_id = i;
+                        new_id = options[i];
                         existing = true;
                         goto finish;
                 }
