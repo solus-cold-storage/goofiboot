@@ -769,7 +769,7 @@ static BOOLEAN menu_run(Config *config, ConfigEntry **chosen_entry, CHAR16 *load
                 }
 
                 err = uefi_call_wrapper(ST->ConIn->ReadKeyStroke, 2, ST->ConIn, &key);
-                if (err == EFI_NOT_READY) {
+                if (err != EFI_SUCCESS) {
                         UINTN index;
 
                         if (timeout_remain == 0) {
