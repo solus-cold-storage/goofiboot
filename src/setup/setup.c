@@ -1211,7 +1211,7 @@ static int remove_variables(const uint8_t uuid[16], const char *path, bool in_or
 static int install_loader_config(const char *esp_path) {
         char *p = NULL;
         char line[64];
-        char *vendor = NULL;
+        char *machine = NULL;
         FILE *f;
 
         f = fopen("/etc/machine-id", "re");
@@ -1225,12 +1225,12 @@ static int install_loader_config(const char *esp_path) {
                 if (s)
                         s[0] = '\0';
                 if (strlen(line) == 32)
-                        vendor = line;
+                        machine = line;
         }
 
         fclose(f);
 
-        if (!vendor)
+        if (!machine)
                 return -ESRCH;
 
         if (asprintf(&p, "%s/%s", esp_path, "loader/loader.conf") < 0) {
@@ -1241,7 +1241,7 @@ static int install_loader_config(const char *esp_path) {
         f = fopen(p, "wxe");
         if (f) {
                 fprintf(f, "#timeout 3\n");
-                fprintf(f, "default %s-*\n", vendor);
+                fprintf(f, "default %s-*\n", machine);
                 fclose(f);
         }
 
