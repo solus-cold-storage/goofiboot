@@ -197,7 +197,7 @@ static EFI_STATUS efivar_set_raw(const EFI_GUID *vendor, CHAR16 *name, CHAR8 *bu
         if (persistent)
                 flags |= EFI_VARIABLE_NON_VOLATILE;
 
-        return uefi_call_wrapper(RT->SetVariable, 5, name, vendor, flags, size, buf);
+        return uefi_call_wrapper(RT->SetVariable, 5, name, (EFI_GUID *)vendor, flags, size, buf);
 }
 
 static EFI_STATUS efivar_set(CHAR16 *name, CHAR16 *value, BOOLEAN persistent) {
@@ -214,7 +214,7 @@ static EFI_STATUS efivar_get_raw(const EFI_GUID *vendor, CHAR16 *name, CHAR8 **b
         if (!buf)
                 return EFI_OUT_OF_RESOURCES;
 
-        err = uefi_call_wrapper(RT->GetVariable, 5, name, vendor, NULL, &l, buf);
+        err = uefi_call_wrapper(RT->GetVariable, 5, name, (EFI_GUID *)vendor, NULL, &l, buf);
         if (EFI_ERROR(err) == EFI_SUCCESS) {
                 *buffer = buf;
                 if (size)
@@ -1387,7 +1387,7 @@ static VOID config_entry_add_from_file(Config *config, EFI_HANDLE *device, CHAR1
         config_add_entry(config, entry);
 }
 
-static UINTN file_read(EFI_FILE_HANDLE dir, const CHAR16 *name, CHAR8 **content) {
+static UINTN file_read(EFI_FILE_HANDLE dir, CHAR16 *name, CHAR8 **content) {
         EFI_FILE_HANDLE handle;
         EFI_FILE_INFO *info;
         CHAR8 *buf;
@@ -1793,7 +1793,7 @@ static EFI_STATUS image_start(EFI_HANDLE parent_image, const Config *config, con
         if (options) {
                 EFI_LOADED_IMAGE *loaded_image;
 
-                err = uefi_call_wrapper(BS->OpenProtocol, 6, image, &LoadedImageProtocol, &loaded_image,
+                err = uefi_call_wrapper(BS->OpenProtocol, 6, image, &LoadedImageProtocol, (void **)&loaded_image,
                                         parent_image, NULL, EFI_OPEN_PROTOCOL_GET_PROTOCOL);
                 if (EFI_ERROR(err)) {
                         Print(L"Error getting LoadedImageProtocol handle: %r", err);
@@ -1848,7 +1848,7 @@ static VOID config_free(Config *config) {
         FreePool(config->entries_auto);
 }
 
-EFI_STATUS EFIAPI efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table) {
+EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table) {
         CHAR16 *s;
         CHAR8 *b;
         UINTN size;
@@ -1872,7 +1872,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table) {
         efivar_set(L"LoaderFirmwareType", s, FALSE);
         FreePool(s);
 
-        err = uefi_call_wrapper(BS->OpenProtocol, 6, image, &LoadedImageProtocol, &loaded_image,
+        err = uefi_call_wrapper(BS->OpenProtocol, 6, image, &LoadedImageProtocol, (void **)&loaded_image,
                                 image, NULL, EFI_OPEN_PROTOCOL_GET_PROTOCOL);
         if (EFI_ERROR(err)) {
                 Print(L"Error getting a LoadedImageProtocol handle: %r ", err);

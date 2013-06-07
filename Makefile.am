@@ -88,12 +88,15 @@ efi_cflags = \
 	-ffreestanding \
 	-fno-strict-aliasing \
 	-fno-stack-protector \
-	-Wsign-compare
+	-Wsign-compare \
+	-mno-sse \
+	-mno-mmx
 
 if ARCH_X86_64
 efi_cflags += \
+	-mno-red-zone \
 	-DEFI_FUNCTION_WRAPPER \
-	-mno-red-zone
+	-DGNU_EFI_USE_MS_ABI
 endif
 
 efi_ldflags = \
