@@ -292,6 +292,32 @@ static void cursor_right(UINTN *cursor, UINTN *first, UINTN x_max, UINTN len)
                 (*first)++;
 }
 
+/* remap common CTRL keys from EFI unicode to EFI scan codes */
+#define CHAR_CTRL(c) ((c) - 'a' + 1)
+static void scancode_remap(EFI_INPUT_KEY *key) {
+        UINT16 scan;
+
+        switch (key->UnicodeChar) {
+        case CHAR_CTRL('a'):
+                scan = SCAN_HOME;
+                break;
+        case CHAR_CTRL('e'):
+                scan = SCAN_END;
+                break;
+        case CHAR_CTRL('f'):
+                scan = SCAN_DOWN;
+                break;
+        case CHAR_CTRL('b'):
+                scan = SCAN_UP;
+                break;
+        default:
+                return;
+        }
+
+        key->UnicodeChar = 0;
+        key->ScanCode = scan;
+}
+
 static BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max, UINTN y_pos) {
         CHAR16 *line;
         UINTN size;
@@ -337,6 +363,8 @@ static BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max, UINTN 
                 err = uefi_call_wrapper(ST->ConIn->ReadKeyStroke, 2, ST->ConIn, &key);
                 if (EFI_ERROR(err))
                         continue;
+
+                scancode_remap(&key);
 
                 switch (key.ScanCode) {
                 case SCAN_ESC:
