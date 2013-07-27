@@ -276,6 +276,34 @@ static VOID efivar_set_time_usec(CHAR16 *name, UINT64 usec) {
         efivar_set(name, str, FALSE);
 }
 
+/* remap EFI unicode and EFI scan code pair */
+#define CHAR_CTRL(c) ((c) - 'a' + 1)
+static void key_remap(EFI_INPUT_KEY *key, const EFI_INPUT_KEY *map) {
+        UINTN i;
+
+        for (i = 0; ; i += 2) {
+                 /* map unicode char to scan code*/
+                 if (map[i].UnicodeChar > 0) {
+                        if (key->UnicodeChar != map[i].UnicodeChar)
+                                continue;
+                        key->ScanCode = map[i+1].ScanCode ;
+                        key->UnicodeChar = 0;
+                        continue;
+                }
+
+                 /* map scan code to unicode char */
+                if (map[i].ScanCode > 0) {
+                        if (key->ScanCode != map[i].ScanCode)
+                                continue;
+                        key->ScanCode = 0 ;
+                        key->UnicodeChar = map[i+1].UnicodeChar;
+                        continue;
+                }
+
+                break;
+        }
+}
+
 static void cursor_left(UINTN *cursor, UINTN *first)
 {
         if ((*cursor) > 0)
@@ -292,32 +320,6 @@ static void cursor_right(UINTN *cursor, UINTN *first, UINTN x_max, UINTN len)
                 (*first)++;
 }
 
-/* remap common CTRL keys from EFI unicode to EFI scan codes */
-#define CHAR_CTRL(c) ((c) - 'a' + 1)
-static void scancode_remap(EFI_INPUT_KEY *key) {
-        UINT16 scan;
-
-        switch (key->UnicodeChar) {
-        case CHAR_CTRL('a'):
-                scan = SCAN_HOME;
-                break;
-        case CHAR_CTRL('e'):
-                scan = SCAN_END;
-                break;
-        case CHAR_CTRL('f'):
-                scan = SCAN_DOWN;
-                break;
-        case CHAR_CTRL('b'):
-                scan = SCAN_UP;
-                break;
-        default:
-                return;
-        }
-
-        key->UnicodeChar = 0;
-        key->ScanCode = scan;
-}
-
 static BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max, UINTN y_pos) {
         CHAR16 *line;
         UINTN size;
@@ -327,6 +329,12 @@ static BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max, UINTN 
         UINTN cursor;
         BOOLEAN exit;
         BOOLEAN enter;
+        static const EFI_INPUT_KEY keymap[] = {
+                { 0, CHAR_CTRL('a') }, { SCAN_HOME, 0 },
+                { 0, CHAR_CTRL('e') }, { SCAN_END,  0 },
+                { 0, CHAR_CTRL('f') }, { SCAN_DOWN, 0 },
+                { 0, CHAR_CTRL('b') }, { SCAN_UP,   0 }
+        };
 
         if (!line_in)
                 line_in = L"";
@@ -364,7 +372,7 @@ static BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max, UINTN 
                 if (EFI_ERROR(err))
                         continue;
 
-                scancode_remap(&key);
+                key_remap(&key, keymap);
 
                 switch (key.ScanCode) {
                 case SCAN_ESC:
@@ -657,6 +665,12 @@ static BOOLEAN menu_run(Config *config, ConfigEntry **chosen_entry, CHAR16 *load
         INTN timeout_remain;
         BOOLEAN exit = FALSE;
         BOOLEAN run = TRUE;
+        static const EFI_INPUT_KEY keymap[] = {
+                { 0,      'j' }, { SCAN_DOWN,  0 },
+                { 0,      'k' }, { SCAN_UP,    0 },
+                { SCAN_F1,  0 }, { 0,        'h' },
+                { 0,        0 }, { 0,          0 }
+        };
 
         console_text_mode();
         uefi_call_wrapper(ST->ConIn->Reset, 2, ST->ConIn, FALSE);
@@ -825,6 +839,8 @@ static BOOLEAN menu_run(Config *config, ConfigEntry **chosen_entry, CHAR16 *load
 
                 idx_highlight_prev = idx_highlight;
 
+                key_remap(&key, keymap);
+
                 switch (key.ScanCode) {
                 case SCAN_UP:
                         if (idx_highlight > 0)
@@ -857,9 +873,6 @@ static BOOLEAN menu_run(Config *config, ConfigEntry **chosen_entry, CHAR16 *load
                         if (idx_highlight > config->entry_count-1)
                                 idx_highlight = config->entry_count-1;
                         break;
-                case SCAN_F1:
-                        status = StrDuplicate(L"(d)efault, (+/-)timeout, (e)dit, (v)ersion (q)uit (*)dump");
-                        break;
                 }
 
                 if (idx_highlight > idx_last) {
@@ -879,13 +892,8 @@ static BOOLEAN menu_run(Config *config, ConfigEntry **chosen_entry, CHAR16 *load
                 case CHAR_CARRIAGE_RETURN:
                         exit = TRUE;
                         break;
-                case 'j':
-                        if (idx_highlight < config->entry_count-1)
-                                idx_highlight++;
-                        break;
-                case 'k':
-                        if (idx_highlight > 0)
-                                idx_highlight--;
+                case 'h':
+                        status = StrDuplicate(L"(d)efault, (+/-)timeout, (e)dit, (v)ersion (q)uit (*)dump (h)elp");
                         break;
                 case 'q':
                         exit = TRUE;
