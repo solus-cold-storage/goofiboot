@@ -563,6 +563,9 @@ static VOID dump_status(Config *config, CHAR16 *loaded_image_path) {
         for (i = 0; i < config->entry_count; i++) {
                 ConfigEntry *entry;
 
+                if (key.ScanCode == SCAN_ESC)
+                        break;
+
                 entry = config->entries[i];
                 Print(L"config entry:           %d/%d\n", i+1, config->entry_count);
                 if (entry->file)
@@ -595,8 +598,6 @@ static VOID dump_status(Config *config, CHAR16 *loaded_image_path) {
                 Print(L"\n--- press key ---\n\n");
                 uefi_call_wrapper(BS->WaitForEvent, 3, 1, &ST->ConIn->WaitForKey, &index);
                 uefi_call_wrapper(ST->ConIn->ReadKeyStroke, 2, ST->ConIn, &key);
-                if (key.ScanCode == SCAN_ESC)
-                        break;
         }
 
         uefi_call_wrapper(ST->ConOut->ClearScreen, 1, ST->ConOut);
