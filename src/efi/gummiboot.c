@@ -594,6 +594,8 @@ static VOID dump_status(Config *config, CHAR16 *loaded_image_path) {
                 Print(L"\n--- press key ---\n\n");
                 uefi_call_wrapper(BS->WaitForEvent, 3, 1, &ST->ConIn->WaitForKey, &index);
                 uefi_call_wrapper(ST->ConIn->ReadKeyStroke, 2, ST->ConIn, &key);
+                if (key.ScanCode == SCAN_ESC)
+                        break;
         }
 
         uefi_call_wrapper(ST->ConOut->ClearScreen, 1, ST->ConOut);
@@ -943,6 +945,9 @@ static BOOLEAN menu_run(Config *config, ConfigEntry **chosen_entry, CHAR16 *load
                                 status = StrDuplicate(L"Menu disabled. Hold down key at bootup to show menu.");
                         break;
                 case 'e':
+                        /* only the options of configured entries can be edited */
+                        if (config->entries[idx_highlight]->type == LOADER_UNDEFINED)
+                                break;
                         uefi_call_wrapper(ST->ConOut->SetAttribute, 2, ST->ConOut, EFI_LIGHTGRAY|EFI_BACKGROUND_BLACK);
                         uefi_call_wrapper(ST->ConOut->SetCursorPosition, 3, ST->ConOut, 0, y_max-1);
                         uefi_call_wrapper(ST->ConOut->OutputString, 2, ST->ConOut, clearline+1);
