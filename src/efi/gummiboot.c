@@ -333,7 +333,8 @@ static BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max, UINTN 
                 { 0, CHAR_CTRL('a') }, { SCAN_HOME, 0 },
                 { 0, CHAR_CTRL('e') }, { SCAN_END,  0 },
                 { 0, CHAR_CTRL('f') }, { SCAN_DOWN, 0 },
-                { 0, CHAR_CTRL('b') }, { SCAN_UP,   0 }
+                { 0, CHAR_CTRL('b') }, { SCAN_UP,   0 },
+                { 0, CHAR_CTRL('c') }, { SCAN_ESC,  0 }
         };
 
         if (!line_in)
