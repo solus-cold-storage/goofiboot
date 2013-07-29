@@ -276,34 +276,6 @@ static VOID efivar_set_time_usec(CHAR16 *name, UINT64 usec) {
         efivar_set(name, str, FALSE);
 }
 
-/* remap EFI unicode and EFI scan code pair */
-#define CHAR_CTRL(c) ((c) - 'a' + 1)
-static void key_remap(EFI_INPUT_KEY *key, const EFI_INPUT_KEY *map) {
-        UINTN i;
-
-        for (i = 0; ; i += 2) {
-                 /* map unicode char to scan code*/
-                 if (map[i].UnicodeChar > 0) {
-                        if (key->UnicodeChar != map[i].UnicodeChar)
-                                continue;
-                        key->ScanCode = map[i+1].ScanCode ;
-                        key->UnicodeChar = 0;
-                        continue;
-                }
-
-                 /* map scan code to unicode char */
-                if (map[i].ScanCode > 0) {
-                        if (key->ScanCode != map[i].ScanCode)
-                                continue;
-                        key->ScanCode = 0 ;
-                        key->UnicodeChar = map[i+1].UnicodeChar;
-                        continue;
-                }
-
-                break;
-        }
-}
-
 static void cursor_left(UINTN *cursor, UINTN *first)
 {
         if ((*cursor) > 0)
@@ -320,6 +292,9 @@ static void cursor_right(UINTN *cursor, UINTN *first, UINTN x_max, UINTN len)
                 (*first)++;
 }
 
+#define CHAR_CTRL(c) ((c) - 'a' + 1)
+#define KEYCODE(scan, uni) (((scan) << 16) | (uni))
+
 static BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max, UINTN y_pos) {
         CHAR16 *line;
         UINTN size;
@@ -327,15 +302,9 @@ static BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max, UINTN 
         UINTN first;
         CHAR16 *print;
         UINTN cursor;
+        UINTN clear;
         BOOLEAN exit;
         BOOLEAN enter;
-        static const EFI_INPUT_KEY keymap[] = {
-                { 0, CHAR_CTRL('a') }, { SCAN_HOME, 0 },
-                { 0, CHAR_CTRL('e') }, { SCAN_END,  0 },
-                { 0, CHAR_CTRL('f') }, { SCAN_DOWN, 0 },
-                { 0, CHAR_CTRL('b') }, { SCAN_UP,   0 },
-                { 0, CHAR_CTRL('c') }, { SCAN_ESC,  0 }
-        };
 
         if (!line_in)
                 line_in = L"";
@@ -349,6 +318,7 @@ static BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max, UINTN 
 
         first = 0;
         cursor = 0;
+        clear = 0;
         enter = FALSE;
         exit = FALSE;
         while (!exit) {
@@ -361,7 +331,10 @@ static BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max, UINTN 
                 if (i >= x_max-1)
                         i = x_max-1;
                 CopyMem(print, line + first, i * sizeof(CHAR16));
-                print[i++] = ' ';
+                while (clear > 0 && i < x_max-1) {
+                        clear--;
+                        print[i++] = ' ';
+                }
                 print[i] = '\0';
 
                 uefi_call_wrapper(ST->ConOut->SetCursorPosition, 3, ST->ConOut, 0, y_pos);
@@ -373,24 +346,29 @@ static BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max, UINTN 
                 if (EFI_ERROR(err))
                         continue;
 
-                key_remap(&key, keymap);
-
-                switch (key.ScanCode) {
-                case SCAN_ESC:
+                switch (KEYCODE(key.ScanCode, key.UnicodeChar)) {
+                case KEYCODE(SCAN_ESC, 0):
+                case KEYCODE(0, CHAR_CTRL('c')):
                         exit = TRUE;
                         break;
-                case SCAN_HOME:
+
+                case KEYCODE(SCAN_HOME, 0):
+                case KEYCODE(0, CHAR_CTRL('a')):
                         cursor = 0;
                         first = 0;
                         continue;
-                case SCAN_END:
+
+                case KEYCODE(SCAN_END, 0):
+                case KEYCODE(0, CHAR_CTRL('e')):
                         cursor = len;
                         if (cursor+1 >= x_max) {
                                 cursor = x_max-1;
                                 first = len - (x_max-1);
                         }
                         continue;
-                case SCAN_UP:
+
+                case KEYCODE(SCAN_UP, 0):
+                case KEYCODE(0, CHAR_CTRL('b')):
                         while((first + cursor) && line[first + cursor] == ' ')
                                 cursor_left(&cursor, &first);
                         while((first + cursor) && line[first + cursor] != ' ')
@@ -401,7 +379,9 @@ static BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max, UINTN 
                                 cursor_right(&cursor, &first, x_max, len);
                         uefi_call_wrapper(ST->ConOut->SetCursorPosition, 3, ST->ConOut, cursor, y_pos);
                         continue;
-                case SCAN_DOWN:
+
+                case KEYCODE(SCAN_DOWN, 0):
+                case KEYCODE(0, CHAR_CTRL('f')):
                         while(line[first + cursor] && line[first + cursor] == ' ')
                                 cursor_right(&cursor, &first, x_max, len);
                         while(line[first + cursor] && line[first + cursor] != ' ')
@@ -410,31 +390,39 @@ static BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max, UINTN 
                                 cursor_right(&cursor, &first, x_max, len);
                         uefi_call_wrapper(ST->ConOut->SetCursorPosition, 3, ST->ConOut, cursor, y_pos);
                         continue;
-                case SCAN_RIGHT:
+
+                case KEYCODE(SCAN_RIGHT, 0):
                         if (first + cursor == len)
                                 continue;
                         cursor_right(&cursor, &first, x_max, len);
                         uefi_call_wrapper(ST->ConOut->SetCursorPosition, 3, ST->ConOut, cursor, y_pos);
                         continue;
-                case SCAN_LEFT:
+
+                case KEYCODE(SCAN_LEFT, 0):
                         cursor_left(&cursor, &first);
                         uefi_call_wrapper(ST->ConOut->SetCursorPosition, 3, ST->ConOut, cursor, y_pos);
                         continue;
-                case SCAN_DELETE:
+
+                case KEYCODE(SCAN_DELETE, 0):
+                case KEYCODE(0, CHAR_CTRL('d')):
                         if (len == 0)
                                 continue;
                         if (first + cursor == len)
                                 continue;
                         for (i = first + cursor; i < len; i++)
                                 line[i] = line[i+1];
-                        line[len-1] = ' ';
+                        clear = 1;
                         len--;
                         continue;
-                }
 
-                switch (key.UnicodeChar) {
-                case CHAR_LINEFEED:
-                case CHAR_CARRIAGE_RETURN:
+                case KEYCODE(0, CHAR_CTRL('k')):
+                        line[first + cursor] = '\0';
+                        clear = len - (first + cursor);
+                        len = first + cursor;
+                        continue;
+
+                case KEYCODE(0, CHAR_LINEFEED):
+                case KEYCODE(0, CHAR_CARRIAGE_RETURN):
                         if (StrCmp(line, line_in) != 0) {
                                 *line_out = line;
                                 line = NULL;
@@ -442,13 +430,15 @@ static BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max, UINTN 
                         enter = TRUE;
                         exit = TRUE;
                         break;
-                case CHAR_BACKSPACE:
+
+                case KEYCODE(0, CHAR_BACKSPACE):
                         if (len == 0)
                                 continue;
                         if (first == 0 && cursor == 0)
                                 continue;
                         for (i = first + cursor-1; i < len; i++)
                                 line[i] = line[i+1];
+                        clear = 1;
                         len--;
                         if (cursor > 0)
                                 cursor--;
@@ -469,9 +459,10 @@ static BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max, UINTN 
                                 first = 0;
                         }
                         continue;
-                case '\t':
-                case ' ' ... '~':
-                case 0x80 ... 0xffff:
+
+                case KEYCODE(0, '\t'):
+                case KEYCODE(0, ' ') ... KEYCODE(0, '~'):
+                case KEYCODE(0, 0x80) ... KEYCODE(0, 0xffff):
                         if (len+1 == size)
                                 continue;
                         for (i = len; i > first + cursor; i--)
@@ -493,7 +484,7 @@ static BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max, UINTN 
         return enter;
 }
 
-static VOID dump_status(Config *config, CHAR16 *loaded_image_path) {
+static VOID print_status(Config *config, CHAR16 *loaded_image_path) {
         UINTN index;
         EFI_INPUT_KEY key;
         UINTN i;
@@ -669,12 +660,6 @@ static BOOLEAN menu_run(Config *config, ConfigEntry **chosen_entry, CHAR16 *load
         INTN timeout_remain;
         BOOLEAN exit = FALSE;
         BOOLEAN run = TRUE;
-        static const EFI_INPUT_KEY keymap[] = {
-                { 0,      'j' }, { SCAN_DOWN,  0 },
-                { 0,      'k' }, { SCAN_UP,    0 },
-                { SCAN_F1,  0 }, { 0,        'h' },
-                { 0,        0 }, { 0,          0 }
-        };
 
         console_text_mode();
         uefi_call_wrapper(ST->ConIn->Reset, 2, ST->ConIn, FALSE);
@@ -843,67 +828,62 @@ static BOOLEAN menu_run(Config *config, ConfigEntry **chosen_entry, CHAR16 *load
 
                 idx_highlight_prev = idx_highlight;
 
-                key_remap(&key, keymap);
-
-                switch (key.ScanCode) {
-                case SCAN_UP:
+                switch (KEYCODE(key.ScanCode, key.UnicodeChar)) {
+                case KEYCODE(SCAN_UP, 0):
+                case KEYCODE(0, 'k'):
                         if (idx_highlight > 0)
                                 idx_highlight--;
                         break;
-                case SCAN_DOWN:
+
+                case KEYCODE(SCAN_DOWN, 0):
+                case KEYCODE(0, 'j'):
                         if (idx_highlight < config->entry_count-1)
                                 idx_highlight++;
                         break;
-                case SCAN_HOME:
+
+                case KEYCODE(SCAN_HOME, 0):
                         if (idx_highlight > 0) {
                                 refresh = TRUE;
                                 idx_highlight = 0;
                         }
                         break;
-                case SCAN_END:
+
+                case KEYCODE(SCAN_END, 0):
                         if (idx_highlight < config->entry_count-1) {
                                 refresh = TRUE;
                                 idx_highlight = config->entry_count-1;
                         }
                         break;
-                case SCAN_PAGE_UP:
+
+                case KEYCODE(SCAN_PAGE_UP, 0):
                         if (idx_highlight > visible_max)
                                 idx_highlight -= visible_max;
                         else
                                 idx_highlight = 0;
                         break;
-                case SCAN_PAGE_DOWN:
+
+                case KEYCODE(SCAN_PAGE_DOWN, 0):
                         idx_highlight += visible_max;
                         if (idx_highlight > config->entry_count-1)
                                 idx_highlight = config->entry_count-1;
                         break;
-                }
 
-                if (idx_highlight > idx_last) {
-                        idx_last = idx_highlight;
-                        idx_first = 1 + idx_highlight - visible_max;
-                        refresh = TRUE;
-                }
-                if (idx_highlight < idx_first) {
-                        idx_first = idx_highlight;
-                        idx_last = idx_highlight + visible_max-1;
-                        refresh = TRUE;
-                }
-                idx_last = idx_first + visible_max-1;
-
-                switch (key.UnicodeChar) {
-                case CHAR_LINEFEED:
-                case CHAR_CARRIAGE_RETURN:
+                case KEYCODE(0, CHAR_LINEFEED):
+                case KEYCODE(0, CHAR_CARRIAGE_RETURN):
                         exit = TRUE;
                         break;
-                case 'h':
-                        status = StrDuplicate(L"(d)efault, (+/-)timeout, (e)dit, (v)ersion (q)uit (*)dump (h)elp");
+
+                case KEYCODE(SCAN_F1, 0):
+                case KEYCODE(0, 'h'):
+                        status = StrDuplicate(L"(d)efault, (+/-)timeout, (e)dit, (v)ersion (q)uit (p)rint (h)elp");
                         break;
-                case 'q':
+
+                case KEYCODE(0, 'q'):
                         exit = TRUE;
                         run = FALSE;
                         break;
-                case 'd':
+
+                case KEYCODE(0, 'd'):
                         if (config->idx_default_efivar != (INTN)idx_highlight) {
                                 /* store the selected entry in a persistent EFI variable */
                                 efivar_set(L"LoaderEntryDefault", config->entries[idx_highlight]->file, TRUE);
@@ -917,7 +897,9 @@ static BOOLEAN menu_run(Config *config, ConfigEntry **chosen_entry, CHAR16 *load
                         }
                         refresh = TRUE;
                         break;
-                case '-':
+
+                case KEYCODE(0, '-'):
+                case KEYCODE(0, 'T'):
                         if (config->timeout_sec_efivar > 0) {
                                 config->timeout_sec_efivar--;
                                 efivar_set_int(L"LoaderConfigTimeout", config->timeout_sec_efivar, TRUE);
@@ -935,7 +917,9 @@ static BOOLEAN menu_run(Config *config, ConfigEntry **chosen_entry, CHAR16 *load
                                         status = StrDuplicate(L"Menu disabled. Hold down key at bootup to show menu.");
                         }
                         break;
-                case '+':
+
+                case KEYCODE(0, '+'):
+                case KEYCODE(0, 't'):
                         if (config->timeout_sec_efivar == -1 && config->timeout_sec_config == 0)
                                 config->timeout_sec_efivar++;
                         config->timeout_sec_efivar++;
@@ -946,7 +930,8 @@ static BOOLEAN menu_run(Config *config, ConfigEntry **chosen_entry, CHAR16 *load
                         else
                                 status = StrDuplicate(L"Menu disabled. Hold down key at bootup to show menu.");
                         break;
-                case 'e':
+
+                case KEYCODE(0, 'e'):
                         /* only the options of configured entries can be edited */
                         if (config->entries[idx_highlight]->type == LOADER_UNDEFINED)
                                 break;
@@ -958,16 +943,31 @@ static BOOLEAN menu_run(Config *config, ConfigEntry **chosen_entry, CHAR16 *load
                         uefi_call_wrapper(ST->ConOut->SetCursorPosition, 3, ST->ConOut, 0, y_max-1);
                         uefi_call_wrapper(ST->ConOut->OutputString, 2, ST->ConOut, clearline+1);
                         break;
-                case 'v':
+
+                case KEYCODE(0, 'v'):
                         status = PoolPrint(L"gummiboot " VERSION ", UEFI %d.%02d, %s %d.%02d",
                                            ST->Hdr.Revision >> 16, ST->Hdr.Revision & 0xffff,
                                            ST->FirmwareVendor, ST->FirmwareRevision >> 16, ST->FirmwareRevision & 0xffff);
                         break;
-                case '*':
-                        dump_status(config, loaded_image_path);
+
+                case KEYCODE(0, 'p'):
+                        print_status(config, loaded_image_path);
                         refresh = TRUE;
                         break;
                 }
+
+                if (idx_highlight > idx_last) {
+                        idx_last = idx_highlight;
+                        idx_first = 1 + idx_highlight - visible_max;
+                        refresh = TRUE;
+                }
+                if (idx_highlight < idx_first) {
+                        idx_first = idx_highlight;
+                        idx_last = idx_highlight + visible_max-1;
+                        refresh = TRUE;
+                }
+
+                idx_last = idx_first + visible_max-1;
 
                 if (!refresh && idx_highlight != idx_highlight_prev)
                         highlight = TRUE;
