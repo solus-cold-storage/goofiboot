@@ -360,7 +360,7 @@ static BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max, UINTN 
 
                 case KEYCODE(SCAN_END, 0):
                 case KEYCODE(0, CHAR_CTRL('e')):
-                        cursor = len;
+                        cursor = len - first;
                         if (cursor+1 >= x_max) {
                                 cursor = x_max-1;
                                 first = len - (x_max-1);
