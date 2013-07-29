@@ -875,7 +875,7 @@ static BOOLEAN menu_run(Config *config, ConfigEntry **chosen_entry, CHAR16 *load
 
                 case KEYCODE(SCAN_F1, 0):
                 case KEYCODE(0, 'h'):
-                        status = StrDuplicate(L"(d)efault, (+/-)timeout, (e)dit, (v)ersion (q)uit (p)rint (h)elp");
+                        status = StrDuplicate(L"(d)efault, (t/T)imeout, (e)dit, (v)ersion (q)uit (p)rint (h)elp");
                         break;
 
                 case KEYCODE(0, 'q'):
