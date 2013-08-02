@@ -276,6 +276,117 @@ static VOID efivar_set_time_usec(CHAR16 *name, UINT64 usec) {
         efivar_set(name, str, FALSE);
 }
 
+#define EFI_SHIFT_STATE_VALID           0x80000000
+#define EFI_RIGHT_CONTROL_PRESSED       0x00000004
+#define EFI_LEFT_CONTROL_PRESSED        0x00000008
+#define EFI_RIGHT_ALT_PRESSED           0x00000010
+#define EFI_LEFT_ALT_PRESSED            0x00000020
+#define EFI_CONTROL_PRESSED             (EFI_RIGHT_CONTROL_PRESSED|EFI_LEFT_CONTROL_PRESSED)
+#define EFI_ALT_PRESSED                 (EFI_RIGHT_ALT_PRESSED|EFI_LEFT_ALT_PRESSED)
+#define KEYPRESS(keys, scan, uni) ((((UINT64)keys) << 32) | ((scan) << 16) | (uni))
+#define KEYCHAR(k) ((k) & 0xffff)
+#define CHAR_CTRL(c) ((c) - 'a' + 1)
+
+static EFI_STATUS key_read(UINT64 *key) {
+        #define EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL_GUID \
+                { 0xdd9e7534, 0x7762, 0x4698, { 0x8c, 0x14, 0xf5, 0x85, 0x17, 0xa6, 0x25, 0xaa } }
+
+        struct _EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL;
+
+        typedef EFI_STATUS (EFIAPI *EFI_INPUT_RESET_EX)(
+                struct _EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL *This;
+                BOOLEAN ExtendedVerification;
+        );
+
+        typedef UINT8 EFI_KEY_TOGGLE_STATE;
+
+        typedef struct {
+                UINT32 KeyShiftState;
+                EFI_KEY_TOGGLE_STATE KeyToggleState;
+        } EFI_KEY_STATE;
+
+        typedef struct {
+                EFI_INPUT_KEY Key;
+                EFI_KEY_STATE KeyState;
+        } EFI_KEY_DATA;
+
+        typedef EFI_STATUS (EFIAPI *EFI_INPUT_READ_KEY_EX)(
+                struct _EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL *This;
+                EFI_KEY_DATA *KeyData;
+        );
+
+        typedef EFI_STATUS (EFIAPI *EFI_SET_STATE)(
+                struct _EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL *This;
+                EFI_KEY_TOGGLE_STATE *KeyToggleState;
+        );
+
+        typedef EFI_STATUS (EFIAPI *EFI_KEY_NOTIFY_FUNCTION)(
+                EFI_KEY_DATA *KeyData;
+        );
+
+        typedef EFI_STATUS (EFIAPI *EFI_REGISTER_KEYSTROKE_NOTIFY)(
+                struct _EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL *This;
+                EFI_KEY_DATA KeyData;
+                EFI_KEY_NOTIFY_FUNCTION KeyNotificationFunction;
+                VOID **NotifyHandle;
+        );
+
+        typedef EFI_STATUS (EFIAPI *EFI_UNREGISTER_KEYSTROKE_NOTIFY)(
+                struct _EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL *This;
+                VOID *NotificationHandle;
+        );
+
+        typedef struct _EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL {
+                EFI_INPUT_RESET_EX Reset;
+                EFI_INPUT_READ_KEY_EX ReadKeyStrokeEx;
+                EFI_EVENT WaitForKeyEx;
+                EFI_SET_STATE SetState;
+                EFI_REGISTER_KEYSTROKE_NOTIFY RegisterKeyNotify;
+                EFI_UNREGISTER_KEYSTROKE_NOTIFY UnregisterKeyNotify;
+        } EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL;
+
+        EFI_GUID EfiSimpleTextInputExProtocolGuid = EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL_GUID;
+        static EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL *TextInputEx;
+        static BOOLEAN checked;
+        EFI_KEY_DATA keydata;
+        UINT32 shift = 0;
+        EFI_STATUS err;
+
+        if (!checked) {
+                err = LibLocateProtocol(&EfiSimpleTextInputExProtocolGuid, (VOID **)&TextInputEx);
+                if (EFI_ERROR(err))
+                        TextInputEx = NULL;
+                checked = TRUE;
+        }
+
+        if (!TextInputEx) {
+                EFI_INPUT_KEY k;
+
+                err  = uefi_call_wrapper(ST->ConIn->ReadKeyStroke, 2, ST->ConIn, &k);
+                if (EFI_ERROR(err))
+                        return err;
+                *key = KEYPRESS(0, k.ScanCode, k.UnicodeChar);
+                return 0;
+        }
+
+
+        err = uefi_call_wrapper(TextInputEx->ReadKeyStrokeEx, 2, TextInputEx, &keydata);
+        if (EFI_ERROR(err))
+                return err;
+
+        /* do not distinguish between left and right keys */
+        if (keydata.KeyState.KeyShiftState & EFI_SHIFT_STATE_VALID) {
+                if (keydata.KeyState.KeyShiftState & (EFI_RIGHT_CONTROL_PRESSED|EFI_LEFT_CONTROL_PRESSED))
+                        shift |= EFI_CONTROL_PRESSED;
+                if (keydata.KeyState.KeyShiftState & (EFI_RIGHT_ALT_PRESSED|EFI_LEFT_ALT_PRESSED))
+                        shift |= EFI_ALT_PRESSED;
+        };
+
+        /* 32 bit modifier keys + 16 bit scan code + 16 bit unicode */
+        *key = KEYPRESS(shift, keydata.Key.ScanCode, keydata.Key.UnicodeChar);
+        return 0;
+}
+
 static void cursor_left(UINTN *cursor, UINTN *first)
 {
         if ((*cursor) > 0)
@@ -291,9 +402,6 @@ static void cursor_right(UINTN *cursor, UINTN *first, UINTN x_max, UINTN len)
         else if ((*first) + (*cursor) < len)
                 (*first)++;
 }
-
-#define CHAR_CTRL(c) ((c) - 'a' + 1)
-#define KEYCODE(scan, uni) (((scan) << 16) | (uni))
 
 static BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max, UINTN y_pos) {
         CHAR16 *line;
@@ -324,7 +432,7 @@ static BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max, UINTN 
         while (!exit) {
                 UINTN index;
                 EFI_STATUS err;
-                EFI_INPUT_KEY key;
+                UINT64 key;
                 UINTN i;
 
                 i = len - first;
@@ -342,24 +450,32 @@ static BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max, UINTN 
                 uefi_call_wrapper(ST->ConOut->SetCursorPosition, 3, ST->ConOut, cursor, y_pos);
 
                 uefi_call_wrapper(BS->WaitForEvent, 3, 1, &ST->ConIn->WaitForKey, &index);
-                err = uefi_call_wrapper(ST->ConIn->ReadKeyStroke, 2, ST->ConIn, &key);
+
+                err = key_read(&key);
                 if (EFI_ERROR(err))
                         continue;
 
-                switch (KEYCODE(key.ScanCode, key.UnicodeChar)) {
-                case KEYCODE(SCAN_ESC, 0):
-                case KEYCODE(0, CHAR_CTRL('c')):
+                switch (key) {
+                case KEYPRESS(0, SCAN_ESC, 0):
+                case KEYPRESS(EFI_CONTROL_PRESSED, 0, 'c'):
+                case KEYPRESS(EFI_CONTROL_PRESSED, 0, 'g'):
+                case KEYPRESS(EFI_CONTROL_PRESSED, 0, CHAR_CTRL('c')):
+                case KEYPRESS(EFI_CONTROL_PRESSED, 0, CHAR_CTRL('g')):
                         exit = TRUE;
                         break;
 
-                case KEYCODE(SCAN_HOME, 0):
-                case KEYCODE(0, CHAR_CTRL('a')):
+                case KEYPRESS(0, SCAN_HOME, 0):
+                case KEYPRESS(EFI_CONTROL_PRESSED, 0, 'a'):
+                case KEYPRESS(EFI_CONTROL_PRESSED, 0, CHAR_CTRL('a')):
+                        /* beginning-of-line */
                         cursor = 0;
                         first = 0;
                         continue;
 
-                case KEYCODE(SCAN_END, 0):
-                case KEYCODE(0, CHAR_CTRL('e')):
+                case KEYPRESS(0, SCAN_END, 0):
+                case KEYPRESS(EFI_CONTROL_PRESSED, 0, 'e'):
+                case KEYPRESS(EFI_CONTROL_PRESSED, 0, CHAR_CTRL('e')):
+                        /* end-of-line */
                         cursor = len - first;
                         if (cursor+1 >= x_max) {
                                 cursor = x_max-1;
@@ -367,8 +483,23 @@ static BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max, UINTN 
                         }
                         continue;
 
-                case KEYCODE(SCAN_UP, 0):
-                case KEYCODE(0, CHAR_CTRL('b')):
+                case KEYPRESS(0, SCAN_DOWN, 0):
+                case KEYPRESS(EFI_ALT_PRESSED, 0, 'f'):
+                case KEYPRESS(EFI_CONTROL_PRESSED, SCAN_RIGHT, 0):
+                        /* forward-word */
+                        while(line[first + cursor] && line[first + cursor] == ' ')
+                                cursor_right(&cursor, &first, x_max, len);
+                        while(line[first + cursor] && line[first + cursor] != ' ')
+                                cursor_right(&cursor, &first, x_max, len);
+                        while(line[first + cursor] && line[first + cursor] == ' ')
+                                cursor_right(&cursor, &first, x_max, len);
+                        uefi_call_wrapper(ST->ConOut->SetCursorPosition, 3, ST->ConOut, cursor, y_pos);
+                        continue;
+
+                case KEYPRESS(0, SCAN_UP, 0):
+                case KEYPRESS(EFI_ALT_PRESSED, 0, 'b'):
+                case KEYPRESS(EFI_CONTROL_PRESSED, SCAN_LEFT, 0):
+                        /* backward-word */
                         while((first + cursor) && line[first + cursor] == ' ')
                                 cursor_left(&cursor, &first);
                         while((first + cursor) && line[first + cursor] != ' ')
@@ -380,31 +511,27 @@ static BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max, UINTN 
                         uefi_call_wrapper(ST->ConOut->SetCursorPosition, 3, ST->ConOut, cursor, y_pos);
                         continue;
 
-                case KEYCODE(SCAN_DOWN, 0):
-                case KEYCODE(0, CHAR_CTRL('f')):
-                        while(line[first + cursor] && line[first + cursor] == ' ')
-                                cursor_right(&cursor, &first, x_max, len);
-                        while(line[first + cursor] && line[first + cursor] != ' ')
-                                cursor_right(&cursor, &first, x_max, len);
-                        while(line[first + cursor] && line[first + cursor] == ' ')
-                                cursor_right(&cursor, &first, x_max, len);
-                        uefi_call_wrapper(ST->ConOut->SetCursorPosition, 3, ST->ConOut, cursor, y_pos);
-                        continue;
-
-                case KEYCODE(SCAN_RIGHT, 0):
+                case KEYPRESS(0, SCAN_RIGHT, 0):
+                case KEYPRESS(EFI_CONTROL_PRESSED, 0, 'f'):
+                case KEYPRESS(EFI_CONTROL_PRESSED, 0, CHAR_CTRL('f')):
+                        /* forward-char */
                         if (first + cursor == len)
                                 continue;
                         cursor_right(&cursor, &first, x_max, len);
                         uefi_call_wrapper(ST->ConOut->SetCursorPosition, 3, ST->ConOut, cursor, y_pos);
                         continue;
 
-                case KEYCODE(SCAN_LEFT, 0):
+                case KEYPRESS(0, SCAN_LEFT, 0):
+                case KEYPRESS(EFI_CONTROL_PRESSED, 0, 'b'):
+                case KEYPRESS(EFI_CONTROL_PRESSED, 0, CHAR_CTRL('b')):
+                        /* backward-char */
                         cursor_left(&cursor, &first);
                         uefi_call_wrapper(ST->ConOut->SetCursorPosition, 3, ST->ConOut, cursor, y_pos);
                         continue;
 
-                case KEYCODE(SCAN_DELETE, 0):
-                case KEYCODE(0, CHAR_CTRL('d')):
+                case KEYPRESS(0, SCAN_DELETE, 0):
+                case KEYPRESS(EFI_CONTROL_PRESSED, 0, 'd'):
+                case KEYPRESS(EFI_CONTROL_PRESSED, 0, CHAR_CTRL('d')):
                         if (len == 0)
                                 continue;
                         if (first + cursor == len)
@@ -415,14 +542,16 @@ static BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max, UINTN 
                         len--;
                         continue;
 
-                case KEYCODE(0, CHAR_CTRL('k')):
+                case KEYPRESS(EFI_CONTROL_PRESSED, 0, 'k'):
+                case KEYPRESS(EFI_CONTROL_PRESSED, 0, CHAR_CTRL('k')):
+                        /* kill-line */
                         line[first + cursor] = '\0';
                         clear = len - (first + cursor);
                         len = first + cursor;
                         continue;
 
-                case KEYCODE(0, CHAR_LINEFEED):
-                case KEYCODE(0, CHAR_CARRIAGE_RETURN):
+                case KEYPRESS(0, 0, CHAR_LINEFEED):
+                case KEYPRESS(0, 0, CHAR_CARRIAGE_RETURN):
                         if (StrCmp(line, line_in) != 0) {
                                 *line_out = line;
                                 line = NULL;
@@ -431,7 +560,7 @@ static BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max, UINTN 
                         exit = TRUE;
                         break;
 
-                case KEYCODE(0, CHAR_BACKSPACE):
+                case KEYPRESS(0, 0, CHAR_BACKSPACE):
                         if (len == 0)
                                 continue;
                         if (first == 0 && cursor == 0)
@@ -460,14 +589,14 @@ static BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max, UINTN 
                         }
                         continue;
 
-                case KEYCODE(0, '\t'):
-                case KEYCODE(0, ' ') ... KEYCODE(0, '~'):
-                case KEYCODE(0, 0x80) ... KEYCODE(0, 0xffff):
+                case KEYPRESS(0, 0, '\t'):
+                case KEYPRESS(0, 0, ' ') ... KEYPRESS(0, 0, '~'):
+                case KEYPRESS(0, 0, 0x80) ... KEYPRESS(0, 0, 0xffff):
                         if (len+1 == size)
                                 continue;
                         for (i = len; i > first + cursor; i--)
                                 line[i] = line[i-1];
-                        line[first + cursor] = key.UnicodeChar;
+                        line[first + cursor] = KEYCHAR(key);
                         len++;
                         line[len] = '\0';
                         if (cursor+1 < x_max)
@@ -554,7 +683,7 @@ static VOID print_status(Config *config, CHAR16 *loaded_image_path) {
         for (i = 0; i < config->entry_count; i++) {
                 ConfigEntry *entry;
 
-                if (key.ScanCode == SCAN_ESC)
+                if (key.ScanCode == SCAN_ESC || key.UnicodeChar == 'q')
                         break;
 
                 entry = config->entries[i];
@@ -586,6 +715,7 @@ static VOID print_status(Config *config, CHAR16 *loaded_image_path) {
                 Print(L"auto-select             %s\n", entry->no_autoselect ? L"no" : L"yes");
                 if (entry->call)
                         Print(L"internal call           yes\n");
+
                 Print(L"\n--- press key ---\n\n");
                 uefi_call_wrapper(BS->WaitForEvent, 3, 1, &ST->ConIn->WaitForKey, &index);
                 uefi_call_wrapper(ST->ConIn->ReadKeyStroke, 2, ST->ConIn, &key);
@@ -596,7 +726,7 @@ static VOID print_status(Config *config, CHAR16 *loaded_image_path) {
 
 static EFI_STATUS console_text_mode(VOID) {
         #define EFI_CONSOLE_CONTROL_PROTOCOL_GUID \
-                { 0xf42f7782, 0x12e, 0x4c12, { 0x99, 0x56, 0x49, 0xf9, 0x43, 0x4, 0xf7, 0x21 }};
+                { 0xf42f7782, 0x12e, 0x4c12, { 0x99, 0x56, 0x49, 0xf9, 0x43, 0x4, 0xf7, 0x21 } };
 
         struct _EFI_CONSOLE_CONTROL_PROTOCOL;
 
@@ -737,7 +867,7 @@ static BOOLEAN menu_run(Config *config, ConfigEntry **chosen_entry, CHAR16 *load
         clearline[i] = 0;
 
         while (!exit) {
-                EFI_INPUT_KEY key;
+                UINT64 key;
 
                 if (refresh) {
                         for (i = 0; i < config->entry_count; i++) {
@@ -799,7 +929,7 @@ static BOOLEAN menu_run(Config *config, ConfigEntry **chosen_entry, CHAR16 *load
                         uefi_call_wrapper(ST->ConOut->OutputString, 2, ST->ConOut, clearline+1 + x + len);
                 }
 
-                err = uefi_call_wrapper(ST->ConIn->ReadKeyStroke, 2, ST->ConIn, &key);
+                err = key_read(&key);
                 if (err != EFI_SUCCESS) {
                         UINTN index;
 
@@ -828,62 +958,62 @@ static BOOLEAN menu_run(Config *config, ConfigEntry **chosen_entry, CHAR16 *load
 
                 idx_highlight_prev = idx_highlight;
 
-                switch (KEYCODE(key.ScanCode, key.UnicodeChar)) {
-                case KEYCODE(SCAN_UP, 0):
-                case KEYCODE(0, 'k'):
+                switch (key) {
+                case KEYPRESS(0, SCAN_UP, 0):
+                case KEYPRESS(0, 0, 'k'):
                         if (idx_highlight > 0)
                                 idx_highlight--;
                         break;
 
-                case KEYCODE(SCAN_DOWN, 0):
-                case KEYCODE(0, 'j'):
+                case KEYPRESS(0, SCAN_DOWN, 0):
+                case KEYPRESS(0, 0, 'j'):
                         if (idx_highlight < config->entry_count-1)
                                 idx_highlight++;
                         break;
 
-                case KEYCODE(SCAN_HOME, 0):
+                case KEYPRESS(0, SCAN_HOME, 0):
                         if (idx_highlight > 0) {
                                 refresh = TRUE;
                                 idx_highlight = 0;
                         }
                         break;
 
-                case KEYCODE(SCAN_END, 0):
+                case KEYPRESS(0, SCAN_END, 0):
                         if (idx_highlight < config->entry_count-1) {
                                 refresh = TRUE;
                                 idx_highlight = config->entry_count-1;
                         }
                         break;
 
-                case KEYCODE(SCAN_PAGE_UP, 0):
+                case KEYPRESS(0, SCAN_PAGE_UP, 0):
                         if (idx_highlight > visible_max)
                                 idx_highlight -= visible_max;
                         else
                                 idx_highlight = 0;
                         break;
 
-                case KEYCODE(SCAN_PAGE_DOWN, 0):
+                case KEYPRESS(0, SCAN_PAGE_DOWN, 0):
                         idx_highlight += visible_max;
                         if (idx_highlight > config->entry_count-1)
                                 idx_highlight = config->entry_count-1;
                         break;
 
-                case KEYCODE(0, CHAR_LINEFEED):
-                case KEYCODE(0, CHAR_CARRIAGE_RETURN):
+                case KEYPRESS(0, 0, CHAR_LINEFEED):
+                case KEYPRESS(0, 0, CHAR_CARRIAGE_RETURN):
                         exit = TRUE;
                         break;
 
-                case KEYCODE(SCAN_F1, 0):
-                case KEYCODE(0, 'h'):
-                        status = StrDuplicate(L"(d)efault, (t/T)imeout, (e)dit, (v)ersion (q)uit (p)rint (h)elp");
+                case KEYPRESS(0, SCAN_F1, 0):
+                case KEYPRESS(0, 0, 'h'):
+                        status = StrDuplicate(L"(d)efault, (t/T)timeout, (e)dit, (v)ersion (Q)uit (P)rint (h)elp");
                         break;
 
-                case KEYCODE(0, 'q'):
+                case KEYPRESS(0, 0, 'Q'):
                         exit = TRUE;
                         run = FALSE;
                         break;
 
-                case KEYCODE(0, 'd'):
+                case KEYPRESS(0, 0, 'd'):
                         if (config->idx_default_efivar != (INTN)idx_highlight) {
                                 /* store the selected entry in a persistent EFI variable */
                                 efivar_set(L"LoaderEntryDefault", config->entries[idx_highlight]->file, TRUE);
@@ -898,8 +1028,8 @@ static BOOLEAN menu_run(Config *config, ConfigEntry **chosen_entry, CHAR16 *load
                         refresh = TRUE;
                         break;
 
-                case KEYCODE(0, '-'):
-                case KEYCODE(0, 'T'):
+                case KEYPRESS(0, 0, '-'):
+                case KEYPRESS(0, 0, 'T'):
                         if (config->timeout_sec_efivar > 0) {
                                 config->timeout_sec_efivar--;
                                 efivar_set_int(L"LoaderConfigTimeout", config->timeout_sec_efivar, TRUE);
@@ -918,8 +1048,8 @@ static BOOLEAN menu_run(Config *config, ConfigEntry **chosen_entry, CHAR16 *load
                         }
                         break;
 
-                case KEYCODE(0, '+'):
-                case KEYCODE(0, 't'):
+                case KEYPRESS(0, 0, '+'):
+                case KEYPRESS(0, 0, 't'):
                         if (config->timeout_sec_efivar == -1 && config->timeout_sec_config == 0)
                                 config->timeout_sec_efivar++;
                         config->timeout_sec_efivar++;
@@ -931,7 +1061,7 @@ static BOOLEAN menu_run(Config *config, ConfigEntry **chosen_entry, CHAR16 *load
                                 status = StrDuplicate(L"Menu disabled. Hold down key at bootup to show menu.");
                         break;
 
-                case KEYCODE(0, 'e'):
+                case KEYPRESS(0, 0, 'e'):
                         /* only the options of configured entries can be edited */
                         if (config->entries[idx_highlight]->type == LOADER_UNDEFINED)
                                 break;
@@ -944,13 +1074,13 @@ static BOOLEAN menu_run(Config *config, ConfigEntry **chosen_entry, CHAR16 *load
                         uefi_call_wrapper(ST->ConOut->OutputString, 2, ST->ConOut, clearline+1);
                         break;
 
-                case KEYCODE(0, 'v'):
+                case KEYPRESS(0, 0, 'v'):
                         status = PoolPrint(L"gummiboot " VERSION ", UEFI %d.%02d, %s %d.%02d",
                                            ST->Hdr.Revision >> 16, ST->Hdr.Revision & 0xffff,
                                            ST->FirmwareVendor, ST->FirmwareRevision >> 16, ST->FirmwareRevision & 0xffff);
                         break;
 
-                case KEYCODE(0, 'p'):
+                case KEYPRESS(0, 0, 'P'):
                         print_status(config, loaded_image_path);
                         refresh = TRUE;
                         break;
