@@ -62,6 +62,7 @@ typedef struct {
         enum loader_type type;
         CHAR16 *loader;
         CHAR16 *options;
+        CHAR16 key;
         EFI_STATUS (*call)(void);
         BOOLEAN no_autoselect;
         BOOLEAN non_unique;
@@ -613,6 +614,39 @@ static BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max, UINTN 
         return enter;
 }
 
+static UINTN entry_lookup_key(Config *config, UINTN start, CHAR16 key) {
+        UINTN i;
+
+        /* select entry by number key */
+        if (key >= '1' && key <= '9') {
+                i = key - '0';
+                if (i > config->entry_count)
+                        i = config->entry_count;
+                return i-1;
+        }
+
+        /* find matching key in config entries */
+        for (i = start; i < config->entry_count; i++) {
+                if (config->entries[i]->key == '\0')
+                        continue;
+                if (config->entries[i]->key != key)
+                        continue;
+
+                return i;
+        }
+
+        for (i = 0; i < start; i++) {
+                if (config->entries[i]->key == '\0')
+                        continue;
+                if (config->entries[i]->key != key)
+                        continue;
+
+                return i;
+        }
+
+        return -1;
+}
+
 static VOID print_status(Config *config, CHAR16 *loaded_image_path) {
         UINTN index;
         EFI_INPUT_KEY key;
@@ -788,6 +822,7 @@ static BOOLEAN menu_run(Config *config, ConfigEntry **chosen_entry, CHAR16 *load
         CHAR16 *status;
         CHAR16 *clearline;
         INTN timeout_remain;
+        INT16 idx;
         BOOLEAN exit = FALSE;
         BOOLEAN run = TRUE;
 
@@ -1084,6 +1119,14 @@ static BOOLEAN menu_run(Config *config, ConfigEntry **chosen_entry, CHAR16 *load
                         print_status(config, loaded_image_path);
                         refresh = TRUE;
                         break;
+
+                default:
+                        /* jump with a hotkey directly to a matching entry */
+                        idx = entry_lookup_key(config, idx_highlight+1, KEYCHAR(key));
+                        if (idx < 0)
+                                break;
+                        idx_highlight = idx;
+                        refresh = TRUE;
                 }
 
                 if (idx_highlight > idx_last) {
@@ -1436,6 +1479,7 @@ static VOID config_entry_add_from_file(Config *config, EFI_HANDLE *device, CHAR1
                         FreePool(entry->loader);
                         entry->type = LOADER_LINUX;
                         entry->loader = stra_to_path(value);
+                        entry->key = 'l';
                         continue;
                 }
 
@@ -1871,7 +1915,7 @@ static BOOLEAN config_entry_add_call(Config *config, CHAR16 *title, EFI_STATUS (
 }
 
 static BOOLEAN config_entry_add_loader(Config *config, EFI_HANDLE *device, EFI_FILE *root_dir, CHAR16 *loaded_image_path,
-                                       CHAR16 *file, CHAR16 *title, CHAR16 *loader) {
+                                       CHAR16 *file, CHAR16 key, CHAR16 *title, CHAR16 *loader) {
         EFI_FILE_HANDLE handle;
         EFI_STATUS err;
         ConfigEntry *entry;
@@ -1893,13 +1937,14 @@ static BOOLEAN config_entry_add_loader(Config *config, EFI_HANDLE *device, EFI_F
         entry->file = StrDuplicate(file);
         StrLwr(entry->file);
         entry->no_autoselect = TRUE;
+        entry->key = key;
         config_add_entry(config, entry);
         return TRUE;
 }
 
 static VOID config_entry_add_loader_auto(Config *config, EFI_HANDLE *device, EFI_FILE *root_dir, CHAR16 *loaded_image_path,
-                                         CHAR16 *file, CHAR16 *title, CHAR16 *loader) {
-        if (!config_entry_add_loader(config, device, root_dir, loaded_image_path, file, title, loader))
+                                         CHAR16 *file, CHAR16 key, CHAR16 *title, CHAR16 *loader) {
+        if (!config_entry_add_loader(config, device, root_dir, loaded_image_path, file, key, title, loader))
                 return;
 
         /* export identifiers of automatically added entries */
@@ -1928,7 +1973,7 @@ static VOID config_entry_add_osx(Config *config) {
                         root = LibOpenRoot(handles[i]);
                         if (!root)
                                 continue;
-                        config_entry_add_loader_auto(config, handles[i], root, NULL, L"auto-osx", L"OS X",
+                        config_entry_add_loader_auto(config, handles[i], root, NULL, L"auto-osx", 'm', L"OS X",
                                                      L"\\System\\Library\\CoreServices\\boot.efi");
                         uefi_call_wrapper(root->Close, 1, root);
                 }
@@ -2100,11 +2145,11 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table) {
 
         /* if we find some well-known loaders, add them to the end of the list */
         config_entry_add_loader_auto(&config, loaded_image->DeviceHandle, root_dir, loaded_image_path,
-                                     L"auto-windows", L"Windows Boot Manager", L"\\EFI\\Microsoft\\Boot\\bootmgfw.efi");
+                                     L"auto-windows", 'w', L"Windows Boot Manager", L"\\EFI\\Microsoft\\Boot\\bootmgfw.efi");
         config_entry_add_loader_auto(&config, loaded_image->DeviceHandle, root_dir, loaded_image_path,
-                                     L"auto-efi-shell", L"EFI Shell", L"\\shellx64.efi");
+                                     L"auto-efi-shell", 's', L"EFI Shell", L"\\shellx64.efi");
         config_entry_add_loader_auto(&config, loaded_image->DeviceHandle, root_dir, loaded_image_path,
-                                     L"auto-efi-default", L"EFI Default Loader", L"\\EFI\\BOOT\\BOOTX64.EFI");
+                                     L"auto-efi-default", '\0', L"EFI Default Loader", L"\\EFI\\BOOT\\BOOTX64.EFI");
         config_entry_add_osx(&config);
         efivar_set(L"LoaderEntriesAuto", config.entries_auto, FALSE);
 
@@ -2134,13 +2179,21 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table) {
                         config.timeout_sec = 10;
         }
 
-        /* show menu when key is pressed or timeout is set */
+        /* select entry or show menu when key is pressed or timeout is set */
         if (config.timeout_sec == 0) {
-                EFI_INPUT_KEY key;
+                EFI_INPUT_KEY k;
 
-                err = uefi_call_wrapper(ST->ConIn->ReadKeyStroke, 2, ST->ConIn, &key);
-                if (err == EFI_SUCCESS)
-                        menu = TRUE;
+                err = uefi_call_wrapper(ST->ConIn->ReadKeyStroke, 2, ST->ConIn, &k);
+                if (err == EFI_SUCCESS) {
+                        INT16 idx;
+
+                        /* find matching key in config entries */
+                        idx = entry_lookup_key(&config, 0, k.UnicodeChar);
+                        if (idx >= 0)
+                                config.idx_default = idx;
+                        else
+                                menu = TRUE;
+                }
         } else
                 menu = TRUE;
 

@@ -21,10 +21,11 @@ cp gummibootx64.efi mnt/EFI/BOOT/BOOTX64.EFI
 mkdir -p mnt/loader/entries
 echo -e "timeout 3\n" > mnt/loader/loader.conf
 echo -e "title Test\nefi /test\n" > mnt/loader/entries/test.conf
-echo -e "title Test2\nefi /test2\n" > mnt/loader/entries/test2.conf
-echo -e "title Test3\nefi /test3\n" > mnt/loader/entries/test3.conf
-echo -e "title Test4\nefi /test4\n" > mnt/loader/entries/test4.conf
+echo -e "title Test2\nlinux /test2\n" > mnt/loader/entries/test2.conf
+echo -e "title Test3\nlinux /test3\n" > mnt/loader/entries/test3.conf
+echo -e "title Test4\nlinux /test4\n" > mnt/loader/entries/test4.conf
 echo -e "title Test5\nefi /test5\n" > mnt/loader/entries/test5.conf
+echo -e "title Test6\nlinux /test6\n" > mnt/loader/entries/test6.conf
 
 sync
 umount mnt
