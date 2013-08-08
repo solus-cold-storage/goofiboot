@@ -1040,6 +1040,7 @@ static BOOLEAN menu_run(Config *config, ConfigEntry **chosen_entry, CHAR16 *load
 
                 case KEYPRESS(0, SCAN_F1, 0):
                 case KEYPRESS(0, 0, 'h'):
+                case KEYPRESS(0, 0, '?'):
                         status = StrDuplicate(L"(d)efault, (t/T)timeout, (e)dit, (v)ersion (Q)uit (P)rint (h)elp");
                         break;
 
