@@ -1974,7 +1974,7 @@ static VOID config_entry_add_osx(Config *config) {
                         root = LibOpenRoot(handles[i]);
                         if (!root)
                                 continue;
-                        config_entry_add_loader_auto(config, handles[i], root, NULL, L"auto-osx", 'm', L"OS X",
+                        config_entry_add_loader_auto(config, handles[i], root, NULL, L"auto-osx", 'a', L"OS X",
                                                      L"\\System\\Library\\CoreServices\\boot.efi");
                         uefi_call_wrapper(root->Close, 1, root);
                 }
@@ -2189,7 +2189,7 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table) {
                         INT16 idx;
 
                         /* find matching key in config entries */
-                        idx = entry_lookup_key(&config, 0, k.UnicodeChar);
+                        idx = entry_lookup_key(&config, config.idx_default, k.UnicodeChar);
                         if (idx >= 0)
                                 config.idx_default = idx;
                         else
