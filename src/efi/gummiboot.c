@@ -617,6 +617,9 @@ static BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max, UINTN 
 static UINTN entry_lookup_key(Config *config, UINTN start, CHAR16 key) {
         UINTN i;
 
+        if (key == 0)
+                return -1;
+
         /* select entry by number key */
         if (key >= '1' && key <= '9') {
                 i = key - '0';
@@ -626,23 +629,13 @@ static UINTN entry_lookup_key(Config *config, UINTN start, CHAR16 key) {
         }
 
         /* find matching key in config entries */
-        for (i = start; i < config->entry_count; i++) {
-                if (config->entries[i]->key == '\0')
-                        continue;
-                if (config->entries[i]->key != key)
-                        continue;
+        for (i = start; i < config->entry_count; i++)
+                if (config->entries[i]->key == key)
+                        return i;
 
-                return i;
-        }
-
-        for (i = 0; i < start; i++) {
-                if (config->entries[i]->key == '\0')
-                        continue;
-                if (config->entries[i]->key != key)
-                        continue;
-
-                return i;
-        }
+        for (i = 0; i < start; i++)
+                if (config->entries[i]->key == key)
+                        return i;
 
         return -1;
 }
