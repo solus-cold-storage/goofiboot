@@ -216,7 +216,7 @@ static EFI_STATUS efivar_get_raw(const EFI_GUID *vendor, CHAR16 *name, CHAR8 **b
                 return EFI_OUT_OF_RESOURCES;
 
         err = uefi_call_wrapper(RT->GetVariable, 5, name, (EFI_GUID *)vendor, NULL, &l, buf);
-        if (EFI_ERROR(err) == EFI_SUCCESS) {
+        if (!EFI_ERROR(err)) {
                 *buffer = buf;
                 if (size)
                         *size = l;
@@ -233,7 +233,7 @@ static EFI_STATUS efivar_get(CHAR16 *name, CHAR16 **value) {
         EFI_STATUS err;
 
         err = efivar_get_raw(&loader_guid, name, &buf, &size);
-        if (EFI_ERROR(err) != EFI_SUCCESS)
+        if (EFI_ERROR(err))
                 return err;
 
         val = StrDuplicate((CHAR16 *)buf);
@@ -258,7 +258,7 @@ static EFI_STATUS efivar_get_int(CHAR16 *name, UINTN *i) {
         EFI_STATUS err;
 
         err = efivar_get(name, &val);
-        if (EFI_ERROR(err) == EFI_SUCCESS) {
+        if (!EFI_ERROR(err)) {
                 *i = Atoi(val);
                 FreePool(val);
         }
@@ -1621,7 +1621,7 @@ static UINTN file_read(EFI_FILE_HANDLE dir, CHAR16 *name, CHAR8 **content) {
         buf = AllocatePool(buflen);
 
         err = uefi_call_wrapper(handle->Read, 3, handle, &buflen, buf);
-        if (EFI_ERROR(err) == EFI_SUCCESS) {
+        if (!EFI_ERROR(err)) {
                 buf[buflen] = '\0';
                 *content = buf;
                 len = buflen;
@@ -1648,14 +1648,14 @@ static VOID config_load(Config *config, EFI_HANDLE *device, EFI_FILE *root_dir, 
         FreePool(content);
 
         err = efivar_get_int(L"LoaderConfigTimeout", &sec);
-        if (EFI_ERROR(err) == EFI_SUCCESS) {
+        if (!EFI_ERROR(err)) {
                 config->timeout_sec_efivar = sec;
                 config->timeout_sec = sec;
         } else
                 config->timeout_sec_efivar = -1;
 
         err = uefi_call_wrapper(root_dir->Open, 5, root_dir, &entries_dir, L"\\loader\\entries", EFI_FILE_MODE_READ, 0ULL);
-        if (EFI_ERROR(err) == EFI_SUCCESS) {
+        if (!EFI_ERROR(err)) {
                 for (;;) {
                         CHAR16 buf[256];
                         UINTN bufsize;
@@ -1718,7 +1718,7 @@ static VOID config_default_entry_select(Config *config) {
          * next reboot. The variable is always cleared directly after it is read.
          */
         err = efivar_get(L"LoaderEntryOneShot", &var);
-        if (EFI_ERROR(err) == EFI_SUCCESS) {
+        if (!EFI_ERROR(err)) {
                 BOOLEAN found = FALSE;
 
                 for (i = 0; i < config->entry_count; i++) {
@@ -1743,7 +1743,7 @@ static VOID config_default_entry_select(Config *config) {
          * an '*'.
          */
         err = efivar_get(L"LoaderEntryDefault", &var);
-        if (EFI_ERROR(err) == EFI_SUCCESS) {
+        if (!EFI_ERROR(err)) {
                 BOOLEAN found = FALSE;
 
                 for (i = 0; i < config->entry_count; i++) {
@@ -1964,7 +1964,7 @@ static VOID config_entry_add_osx(Config *config) {
         EFI_HANDLE *handles = NULL;
 
         err = LibLocateHandle(ByProtocol, &FileSystemProtocol, NULL, &handle_count, &handles);
-        if (EFI_ERROR(err) == EFI_SUCCESS) {
+        if (!EFI_ERROR(err)) {
                 UINTN i;
 
                 for (i = 0; i < handle_count; i++) {
@@ -2040,12 +2040,12 @@ static EFI_STATUS reboot_into_firmware(VOID) {
         osind = EFI_OS_INDICATIONS_BOOT_TO_FW_UI;
 
         err = efivar_get_raw(&global_guid, L"OsIndications", &b, &size);
-        if (err == EFI_SUCCESS)
+        if (!EFI_ERROR(err))
                 osind |= (UINT64)*b;
         FreePool(b);
 
         err = efivar_set_raw(&global_guid, L"OsIndications", (CHAR8 *)&osind, sizeof(UINT64), TRUE);
-        if (err != EFI_SUCCESS)
+        if (EFI_ERROR(err))
                 return err;
 
         err = uefi_call_wrapper(RT->ResetSystem, 4, EfiResetCold, EFI_SUCCESS, 0, NULL);
