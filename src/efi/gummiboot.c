@@ -288,7 +288,7 @@ static VOID efivar_set_time_usec(CHAR16 *name, UINT64 usec) {
 #define KEYCHAR(k) ((k) & 0xffff)
 #define CHAR_CTRL(c) ((c) - 'a' + 1)
 
-static EFI_STATUS key_read(UINT64 *key) {
+static EFI_STATUS key_read(UINT64 *key, BOOLEAN wait) {
         #define EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL_GUID \
                 { 0xdd9e7534, 0x7762, 0x4698, { 0x8c, 0x14, 0xf5, 0x85, 0x17, 0xa6, 0x25, 0xaa } }
 
@@ -351,26 +351,33 @@ static EFI_STATUS key_read(UINT64 *key) {
         static BOOLEAN checked;
         EFI_KEY_DATA keydata;
         UINT32 shift = 0;
+        UINTN index;
         EFI_STATUS err;
 
         if (!checked) {
                 err = LibLocateProtocol(&EfiSimpleTextInputExProtocolGuid, (VOID **)&TextInputEx);
                 if (EFI_ERROR(err))
                         TextInputEx = NULL;
+
                 checked = TRUE;
         }
 
         if (!TextInputEx) {
                 EFI_INPUT_KEY k;
 
+                /* fallback for firmware which does not support SIMPLE_TEXT_INPUT_EX_PROTOCOL */
+                if (wait)
+                        uefi_call_wrapper(BS->WaitForEvent, 3, 1, &ST->ConIn->WaitForKey, &index);
                 err  = uefi_call_wrapper(ST->ConIn->ReadKeyStroke, 2, ST->ConIn, &k);
                 if (EFI_ERROR(err))
                         return err;
+
                 *key = KEYPRESS(0, k.ScanCode, k.UnicodeChar);
                 return 0;
         }
 
-
+        if (wait)
+                uefi_call_wrapper(BS->WaitForEvent, 3, 1, &TextInputEx->WaitForKeyEx, &index);
         err = uefi_call_wrapper(TextInputEx->ReadKeyStrokeEx, 2, TextInputEx, &keydata);
         if (EFI_ERROR(err))
                 return err;
@@ -431,7 +438,6 @@ static BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max, UINTN 
         enter = FALSE;
         exit = FALSE;
         while (!exit) {
-                UINTN index;
                 EFI_STATUS err;
                 UINT64 key;
                 UINTN i;
@@ -450,9 +456,7 @@ static BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max, UINTN 
                 uefi_call_wrapper(ST->ConOut->OutputString, 2, ST->ConOut, print);
                 uefi_call_wrapper(ST->ConOut->SetCursorPosition, 3, ST->ConOut, cursor, y_pos);
 
-                uefi_call_wrapper(BS->WaitForEvent, 3, 1, &ST->ConIn->WaitForKey, &index);
-
-                err = key_read(&key);
+                err = key_read(&key, TRUE);
                 if (EFI_ERROR(err))
                         continue;
 
@@ -641,8 +645,7 @@ static UINTN entry_lookup_key(Config *config, UINTN start, CHAR16 key) {
 }
 
 static VOID print_status(Config *config, CHAR16 *loaded_image_path) {
-        UINTN index;
-        EFI_INPUT_KEY key;
+        UINT64 key;
         UINTN i;
         CHAR16 *s;
         CHAR8 *b;
@@ -704,13 +707,12 @@ static VOID print_status(Config *config, CHAR16 *loaded_image_path) {
         }
 
         Print(L"\n--- press key ---\n\n");
-        uefi_call_wrapper(BS->WaitForEvent, 3, 1, &ST->ConIn->WaitForKey, &index);
-        uefi_call_wrapper(ST->ConIn->ReadKeyStroke, 2, ST->ConIn, &key);
+        key_read(&key, TRUE);
 
         for (i = 0; i < config->entry_count; i++) {
                 ConfigEntry *entry;
 
-                if (key.ScanCode == SCAN_ESC || key.UnicodeChar == 'q')
+                if (key == KEYPRESS(0, SCAN_ESC, 0) || key == KEYPRESS(0, 0, 'q'))
                         break;
 
                 entry = config->entries[i];
@@ -744,8 +746,7 @@ static VOID print_status(Config *config, CHAR16 *loaded_image_path) {
                         Print(L"internal call           yes\n");
 
                 Print(L"\n--- press key ---\n\n");
-                uefi_call_wrapper(BS->WaitForEvent, 3, 1, &ST->ConIn->WaitForKey, &index);
-                uefi_call_wrapper(ST->ConIn->ReadKeyStroke, 2, ST->ConIn, &key);
+                key_read(&key, TRUE);
         }
 
         uefi_call_wrapper(ST->ConOut->ClearScreen, 1, ST->ConOut);
@@ -818,6 +819,7 @@ static BOOLEAN menu_run(Config *config, ConfigEntry **chosen_entry, CHAR16 *load
         INT16 idx;
         BOOLEAN exit = FALSE;
         BOOLEAN run = TRUE;
+        BOOLEAN wait = FALSE;
 
         console_text_mode();
         uefi_call_wrapper(ST->ConIn->Reset, 2, ST->ConIn, FALSE);
@@ -957,22 +959,26 @@ static BOOLEAN menu_run(Config *config, ConfigEntry **chosen_entry, CHAR16 *load
                         uefi_call_wrapper(ST->ConOut->OutputString, 2, ST->ConOut, clearline+1 + x + len);
                 }
 
-                err = key_read(&key);
-                if (err != EFI_SUCCESS) {
-                        UINTN index;
-
+                err = key_read(&key, wait);
+                if (EFI_ERROR(err)) {
+                        /* timeout reached */
                         if (timeout_remain == 0) {
                                 exit = TRUE;
                                 break;
                         }
+
+                        /* sleep and update status */
                         if (timeout_remain > 0) {
                                 uefi_call_wrapper(BS->Stall, 1, 100 * 1000);
                                 timeout_remain--;
                                 continue;
                         }
-                        uefi_call_wrapper(BS->WaitForEvent, 3, 1, &ST->ConIn->WaitForKey, &index);
+
+                        /* timeout disabled, wait for next key */
+                        wait = TRUE;
                         continue;
                 }
+
                 timeout_remain = -1;
 
                 /* clear status after keystroke */
@@ -2175,14 +2181,14 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table) {
 
         /* select entry or show menu when key is pressed or timeout is set */
         if (config.timeout_sec == 0) {
-                EFI_INPUT_KEY k;
+                UINT64 key;
 
-                err = uefi_call_wrapper(ST->ConIn->ReadKeyStroke, 2, ST->ConIn, &k);
-                if (err == EFI_SUCCESS) {
+                err = key_read(&key, FALSE);
+                if (!EFI_ERROR(err)) {
                         INT16 idx;
 
                         /* find matching key in config entries */
-                        idx = entry_lookup_key(&config, config.idx_default, k.UnicodeChar);
+                        idx = entry_lookup_key(&config, config.idx_default, KEYCHAR(key));
                         if (idx >= 0)
                                 config.idx_default = idx;
                         else
