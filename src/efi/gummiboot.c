@@ -1006,6 +1006,7 @@ static BOOLEAN menu_run(Config *config, ConfigEntry **chosen_entry, CHAR16 *load
                         break;
 
                 case KEYPRESS(0, SCAN_HOME, 0):
+                case KEYPRESS(EFI_ALT_PRESSED, 0, '<'):
                         if (idx_highlight > 0) {
                                 refresh = TRUE;
                                 idx_highlight = 0;
@@ -1013,6 +1014,7 @@ static BOOLEAN menu_run(Config *config, ConfigEntry **chosen_entry, CHAR16 *load
                         break;
 
                 case KEYPRESS(0, SCAN_END, 0):
+                case KEYPRESS(EFI_ALT_PRESSED, 0, '>'):
                         if (idx_highlight < config->entry_count-1) {
                                 refresh = TRUE;
                                 idx_highlight = config->entry_count-1;
@@ -1117,6 +1119,11 @@ static BOOLEAN menu_run(Config *config, ConfigEntry **chosen_entry, CHAR16 *load
 
                 case KEYPRESS(0, 0, 'P'):
                         print_status(config, loaded_image_path);
+                        refresh = TRUE;
+                        break;
+
+                case KEYPRESS(EFI_CONTROL_PRESSED, 0, 'l'):
+                case KEYPRESS(EFI_CONTROL_PRESSED, 0, CHAR_CTRL('l')):
                         refresh = TRUE;
                         break;
 
