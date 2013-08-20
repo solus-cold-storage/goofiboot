@@ -492,11 +492,9 @@ static BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max, UINTN 
                 case KEYPRESS(EFI_ALT_PRESSED, 0, 'f'):
                 case KEYPRESS(EFI_CONTROL_PRESSED, SCAN_RIGHT, 0):
                         /* forward-word */
-                        while(line[first + cursor] && line[first + cursor] == ' ')
+                        while (line[first + cursor] && line[first + cursor] == ' ')
                                 cursor_right(&cursor, &first, x_max, len);
-                        while(line[first + cursor] && line[first + cursor] != ' ')
-                                cursor_right(&cursor, &first, x_max, len);
-                        while(line[first + cursor] && line[first + cursor] == ' ')
+                        while (line[first + cursor] && line[first + cursor] != ' ')
                                 cursor_right(&cursor, &first, x_max, len);
                         uefi_call_wrapper(ST->ConOut->SetCursorPosition, 3, ST->ConOut, cursor, y_pos);
                         continue;
@@ -505,14 +503,13 @@ static BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max, UINTN 
                 case KEYPRESS(EFI_ALT_PRESSED, 0, 'b'):
                 case KEYPRESS(EFI_CONTROL_PRESSED, SCAN_LEFT, 0):
                         /* backward-word */
-                        while((first + cursor) && line[first + cursor] == ' ')
+                        if ((first + cursor) > 0 && line[first + cursor-1] == ' ') {
                                 cursor_left(&cursor, &first);
-                        while((first + cursor) && line[first + cursor] != ' ')
+                                while ((first + cursor) > 0 && line[first + cursor] == ' ')
+                                        cursor_left(&cursor, &first);
+                        }
+                        while ((first + cursor) > 0 && line[first + cursor-1] != ' ')
                                 cursor_left(&cursor, &first);
-                        while((first + cursor) && line[first + cursor] == ' ')
-                                cursor_left(&cursor, &first);
-                        if (first + cursor != len && first + cursor)
-                                cursor_right(&cursor, &first, x_max, len);
                         uefi_call_wrapper(ST->ConOut->SetCursorPosition, 3, ST->ConOut, cursor, y_pos);
                         continue;
 
@@ -532,6 +529,43 @@ static BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max, UINTN 
                         /* backward-char */
                         cursor_left(&cursor, &first);
                         uefi_call_wrapper(ST->ConOut->SetCursorPosition, 3, ST->ConOut, cursor, y_pos);
+                        continue;
+
+                case KEYPRESS(EFI_ALT_PRESSED, 0, 'd'):
+                        /* kill-word */
+                        clear = 0;
+                        for (i = first + cursor; i < len && line[i] == ' '; i++)
+                                clear++;
+                        for (; i < len && line[i] != ' '; i++)
+                                clear++;
+
+                        for (i = first + cursor; i + clear < len; i++)
+                                line[i] = line[i + clear];
+                        len -= clear;
+                        line[len] = '\0';
+                        continue;
+
+                case KEYPRESS(EFI_ALT_PRESSED, 0, CHAR_BACKSPACE):
+                        /* backward-kill-word */
+                        clear = 0;
+                        if ((first + cursor) > 0 && line[first + cursor-1] == ' ') {
+                                cursor_left(&cursor, &first);
+                                clear++;
+                                while ((first + cursor) > 0 && line[first + cursor] == ' ') {
+                                        cursor_left(&cursor, &first);
+                                        clear++;
+                                }
+                        }
+                        while ((first + cursor) > 0 && line[first + cursor-1] != ' ') {
+                                cursor_left(&cursor, &first);
+                                clear++;
+                        }
+                        uefi_call_wrapper(ST->ConOut->SetCursorPosition, 3, ST->ConOut, cursor, y_pos);
+
+                        for (i = first + cursor; i + clear < len; i++)
+                                line[i] = line[i + clear];
+                        len -= clear;
+                        line[len] = '\0';
                         continue;
 
                 case KEYPRESS(0, SCAN_DELETE, 0):
@@ -594,7 +628,6 @@ static BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max, UINTN 
                         }
                         continue;
 
-                case KEYPRESS(0, 0, '\t'):
                 case KEYPRESS(0, 0, ' ') ... KEYPRESS(0, 0, '~'):
                 case KEYPRESS(0, 0, 0x80) ... KEYPRESS(0, 0, 0xffff):
                         if (len+1 == size)
