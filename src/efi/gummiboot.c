@@ -366,10 +366,11 @@ static EFI_STATUS key_read(UINT64 *key, BOOLEAN wait) {
                 checked = TRUE;
         }
 
+fallback:
         if (!TextInputEx) {
                 EFI_INPUT_KEY k;
 
-                /* fallback for firmware which does not support SIMPLE_TEXT_INPUT_EX_PROTOCOL */
+                /* fallback for firmware which does not support SimpleTextInputExProtocol */
                 if (wait)
                         uefi_call_wrapper(BS->WaitForEvent, 3, 1, &ST->ConIn->WaitForKey, &index);
                 err  = uefi_call_wrapper(ST->ConIn->ReadKeyStroke, 2, ST->ConIn, &k);
@@ -380,15 +381,24 @@ static EFI_STATUS key_read(UINT64 *key, BOOLEAN wait) {
                 return 0;
         }
 
-        if (wait)
-                uefi_call_wrapper(BS->WaitForEvent, 3, 1, &TextInputEx->WaitForKeyEx, &index);
+        if (wait) {
+                /* wait for key press */
+                err = uefi_call_wrapper(BS->WaitForEvent, 3, 1, &TextInputEx->WaitForKeyEx, &index);
+                if (EFI_ERROR(err)) {
+                        /* some firmware exposes SimpleTextInputExProtocol, but it doesn't work */
+                        TextInputEx = NULL;
+                        goto fallback;
+                }
+        }
+
         err = uefi_call_wrapper(TextInputEx->ReadKeyStrokeEx, 2, TextInputEx, &keydata);
         if (EFI_ERROR(err)) {
-                /* hmm, we waited but we could read a key; some firmwares seem
-                 * to provide SimpleTextInputExProtocol but it does not do the
-                 * right thing; just fall back to SimpleTextInputProtocol. */
-                if (wait)
+                if (err != EFI_NOT_READY) {
+                        /* some firmware exposes SimpleTextInputExProtocol, but it doesn't work */
                         TextInputEx = NULL;
+                        goto fallback;
+                }
+
                 return err;
         }
 
