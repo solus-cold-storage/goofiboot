@@ -41,10 +41,13 @@ gummiboot_SOURCES = \
 	src/setup/efivars.c \
 	src/setup/efivars.h
 
+gummiboot_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	-DMACHINE_TYPE_NAME=\"$(MACHINE_TYPE_NAME)\" \
+	-DGUMMIBOOTLIBDIR=\"$(gummibootlibdir)\"
+
 gummiboot_CFLAGS = \
 	$(AM_CFLAGS) \
-	-DMACHINE_TYPE_NAME=\"$(MACHINE_TYPE_NAME)\" \
-	-DGUMMIBOOTLIBDIR=\"$(gummibootlibdir)\" \
 	$(BLKID_CFLAGS)
 
 gummiboot_LDADD = \
@@ -72,12 +75,15 @@ CLEANFILES += man/gummiboot.8
 efi_loadername = gummiboot$(MACHINE_TYPE_NAME).efi
 efi_sources = src/efi/gummiboot.c
 
+EFI_INCDIR = /usr/include
 efi_cppflags = \
+	$(EFI_CPPFLAGS) \
 	-I$(top_builddir) -include config.h \
-	-I/usr/include/efi \
-	-I/usr/include/efi/$(ARCH)
+	-I$(EFI_INCDIR)/efi \
+	-I$(EFI_INCDIR)/efi/$(ARCH)
 
 efi_cflags = \
+	$(EFI_CFLAGS) \
 	-Wall \
 	-Wextra \
 	-nostdinc \
@@ -100,6 +106,7 @@ efi_cflags += \
 endif
 
 efi_ldflags = \
+	$(EFI_LDLAGS) \
 	-T $(GNUEFI_LDS_DIR)/elf_$(ARCH)_efi.lds \
 	-shared \
 	-Bsymbolic \
