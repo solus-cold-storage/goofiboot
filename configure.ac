@@ -49,13 +49,13 @@ AC_PATH_PROG([XSLTPROC], [xsltproc])
 AC_PATH_PROG([QEMU_KVM], [qemu-kvm])
 
 dnl Define ARCH_<NAME> conditionals
-SET_ARCH(I686, i686*)
+SET_ARCH(IA32, i*86*)
 SET_ARCH(X86_64, x86_64*)
 SET_ARCH(IA64, ia64*)
 
 ARCH=`echo $host | sed "s/\(-\).*$//"`
 
-AM_COND_IF(ARCH_I686, [
+AM_COND_IF(ARCH_IA32, [
         ARCH=ia32
         MACHINE_TYPE_NAME=ia32])
 
