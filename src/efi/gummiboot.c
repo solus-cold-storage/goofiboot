@@ -379,8 +379,14 @@ static EFI_STATUS key_read(UINT64 *key, BOOLEAN wait) {
         if (wait)
                 uefi_call_wrapper(BS->WaitForEvent, 3, 1, &TextInputEx->WaitForKeyEx, &index);
         err = uefi_call_wrapper(TextInputEx->ReadKeyStrokeEx, 2, TextInputEx, &keydata);
-        if (EFI_ERROR(err))
+        if (EFI_ERROR(err)) {
+                /* hmm, we waited but we could read a key; some firmwares seem
+                 * to provide SimpleTextInputExProtocol but it does not do the
+                 * right thing; just fall back to SimpleTextInputProtocol. */
+                if (wait)
+                        TextInputEx = NULL;
                 return err;
+        }
 
         /* do not distinguish between left and right keys */
         if (keydata.KeyState.KeyShiftState & EFI_SHIFT_STATE_VALID) {
