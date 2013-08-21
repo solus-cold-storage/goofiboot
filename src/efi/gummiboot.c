@@ -90,6 +90,13 @@ static UINT64 ticks_read(void) {
         __asm__ volatile ("rdtsc" : "=a" (a), "=d" (d));
         return (d << 32) | a;
 }
+#else
+static UINT64 ticks_read(void) {
+        UINT64 val;
+        __asm__ volatile ("rdtsc" : "=A" (val));
+        return val;
+}
+#endif
 
 static void cpuid_read(UINT32 info, UINT32 *eax, UINT32 *ebx, UINT32 *ecx, UINT32 *edx) {
         *eax = info;
@@ -187,9 +194,6 @@ static UINT64 time_usec(void) {
 
         return 1000 * 1000 * ticks / cpufreq;
 }
-#else
-static UINT64 time_usec(void) { return 0; }
-#endif
 
 static EFI_STATUS efivar_set_raw(const EFI_GUID *vendor, CHAR16 *name, CHAR8 *buf, UINTN size, BOOLEAN persistent) {
         UINT32 flags;
