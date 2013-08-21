@@ -389,7 +389,7 @@ static int status_binaries(const char *esp_path, uint8_t partition[16]) {
         else if (r < 0)
                 return r;
 
-        r = enumerate_binaries(esp_path, "EFI/BOOT", "BOOT");
+        r = enumerate_binaries(esp_path, "EFI/Boot", "boot");
         if (r == 0)
                 fprintf(stderr, "No default/fallback boot loader installed in ESP.\n");
         else if (r < 0)
@@ -723,7 +723,7 @@ static int create_dirs(const char *esp_path) {
         if (r < 0)
                 return r;
 
-        r = mkdir_one(esp_path, "EFI/BOOT");
+        r = mkdir_one(esp_path, "EFI/Boot");
         if (r < 0)
                 return r;
 
@@ -760,7 +760,7 @@ static int copy_one_file(const char *esp_path, const char *name, bool force) {
                 int k;
 
                 /* Create the EFI default boot loader name (specified for removable devices) */
-                if (asprintf(&v, "%s/EFI/BOOT/%s", esp_path, name + 5) < 0) {
+                if (asprintf(&v, "%s/EFI/Boot/%s", esp_path, name + 5) < 0) {
                         fprintf(stderr, "Out of memory.\n");
                         r = -ENOMEM;
                         goto finish;
@@ -1046,7 +1046,7 @@ static int remove_boot_efi(const char *esp_path) {
         DIR *d = NULL;
         int r = 0, c = 0;
 
-        if (asprintf(&p, "%s/EFI/BOOT", esp_path) < 0) {
+        if (asprintf(&p, "%s/EFI/Boot", esp_path) < 0) {
                 fprintf(stderr, "Out of memory.\n");
                 return -ENOMEM;
         }
@@ -1075,7 +1075,7 @@ static int remove_boot_efi(const char *esp_path) {
                 if (n < 4 || strcasecmp(de->d_name + n - 4, ".EFI") != 0)
                         continue;
 
-                if (strncasecmp(de->d_name, "BOOT", 4) != 0)
+                if (strncasecmp(de->d_name, "Boot", 4) != 0)
                         continue;
 
                 free(q);
@@ -1172,7 +1172,7 @@ static int remove_binaries(const char *esp_path) {
         if (q < 0 && r == 0)
                 r = q;
 
-        q = rmdir_one(esp_path, "EFI/BOOT");
+        q = rmdir_one(esp_path, "EFI/Boot");
         if (q < 0 && r == 0)
                 r = q;
 

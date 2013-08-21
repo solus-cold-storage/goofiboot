@@ -12,8 +12,8 @@ mkdir -p mnt
 mount $LOOP mnt
 
 # install gummiboot
-mkdir -p mnt/EFI/BOOT
-cp gummibootx64.efi mnt/EFI/BOOT/BOOTX64.EFI
+mkdir -p mnt/EFI/Boot
+cp gummibootx64.efi mnt/EFI/Boot/bootx64.efi
 
 [ -e /boot/shellx64.efi ] && cp /boot/shellx64.efi mnt/
 
