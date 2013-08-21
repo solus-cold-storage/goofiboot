@@ -71,11 +71,12 @@ AC_CHECK_FILE([/usr/share/qemu-ovmf/bios], [BIOS=/usr/share/qemu-ovmf/bios])
 AC_SUBST([BIOS])
 
 # ------------------------------------------------------------------------------
-dnl Compile EFI stuff is so tricky that it's probably better to check for the
-dnl include files that try to use AC_CHECK_HEADERS to compile any conftest.c
-AC_CHECK_FILES([/usr/include/efi/efi.h
-                /usr/include/efi/${ARCH}/efibind.h], [],
-        [AC_MSG_ERROR([*** GNU Efi headers not found])])
+dnl GNU EFI doesn't use relative paths: efi.h includes efibind.h which is in
+dnl ${ARCH} relative to efi.h. I can't find a way to get AC_CHECK_HEADERS to
+dnl add -I/usr/include/efi/${ARCH} to the conftest.c build. So, just test for
+dnl efibind.h as the chances of efi.h not existing if it does are very low.
+AC_CHECK_HEADER(efi/${ARCH}/efibind.h, [],
+        [AC_MSG_ERROR([*** GNU EFI header efibind.h not found])])
 
 efiroot=$(echo $(cd /usr/lib/$(gcc -print-multi-os-directory); pwd))
 GNUEFI_LIBS="-L $efiroot"
