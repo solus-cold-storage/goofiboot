@@ -80,7 +80,8 @@ efi_cppflags = \
 	$(EFI_CPPFLAGS) \
 	-I$(top_builddir) -include config.h \
 	-I$(EFI_INCDIR)/efi \
-	-I$(EFI_INCDIR)/efi/$(ARCH)
+	-I$(EFI_INCDIR)/efi/$(ARCH) \
+	-DMACHINE_TYPE_NAME=\"$(MACHINE_TYPE_NAME)\"
 
 efi_cflags = \
 	$(EFI_CFLAGS) \

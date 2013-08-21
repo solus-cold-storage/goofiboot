@@ -2197,9 +2197,9 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table) {
         config_entry_add_loader_auto(&config, loaded_image->DeviceHandle, root_dir, loaded_image_path,
                                      L"auto-windows", 'w', L"Windows Boot Manager", L"\\EFI\\Microsoft\\Boot\\bootmgfw.efi");
         config_entry_add_loader_auto(&config, loaded_image->DeviceHandle, root_dir, loaded_image_path,
-                                     L"auto-efi-shell", 's', L"EFI Shell", L"\\shellx64.efi");
+                                     L"auto-efi-shell", 's', L"EFI Shell", L"\\shell" MACHINE_TYPE_NAME ".efi");
         config_entry_add_loader_auto(&config, loaded_image->DeviceHandle, root_dir, loaded_image_path,
-                                     L"auto-efi-default", '\0', L"EFI Default Loader", L"\\EFI\\BOOT\\BOOTX64.EFI");
+                                     L"auto-efi-default", '\0', L"EFI Default Loader", L"\\EFI\\BOOT\\BOOT" MACHINE_TYPE_NAME ".EFI");
         config_entry_add_osx(&config);
         efivar_set(L"LoaderEntriesAuto", config.entries_auto, FALSE);
 
