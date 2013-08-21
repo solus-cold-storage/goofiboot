@@ -46,7 +46,6 @@ AC_PROG_GCC_TRADITIONAL
 
 AC_PROG_MKDIR_P
 AC_PATH_PROG([XSLTPROC], [xsltproc])
-AC_PATH_PROG([QEMU_KVM], [qemu-kvm])
 
 dnl Define ARCH_<NAME> conditionals
 SET_ARCH(IA32, i*86*)
@@ -65,10 +64,13 @@ AM_COND_IF(ARCH_X86_64, [
 AC_SUBST([ARCH])
 AC_SUBST([MACHINE_TYPE_NAME])
 
-# test bios
-AC_CHECK_FILE([/usr/lib/qemu-bios],        [BIOS=/usr/lib/qemu-bios])
-AC_CHECK_FILE([/usr/share/qemu-ovmf/bios], [BIOS=/usr/share/qemu-ovmf/bios])
-AC_SUBST([BIOS])
+# QEMU and OVMF UEFI firmware
+AS_IF([test x"$cross_compiling" = "xyes"], [], [
+        AC_PATH_PROG([QEMU], [qemu-kvm])
+        AC_CHECK_FILE([/usr/share/qemu/bios-ovmf.bin], [QEMU_BIOS=/usr/share/qemu/bios-ovmf.bin])
+        AC_CHECK_FILE([/usr/share/qemu-ovmf/bios],     [QEMU_BIOS=/usr/share/qemu-ovmf/bios/bios.bin])
+        AC_SUBST([QEMU_BIOS])
+])
 
 # ------------------------------------------------------------------------------
 dnl GNU EFI doesn't use relative paths: efi.h includes efibind.h which is in
@@ -129,5 +131,6 @@ AC_MSG_RESULT([
         blkid:                   ${have_blkid}
         man pages:               ${have_manpages}
 
-        test QEMU bios:          ${BIOS}
+        QEMU:                    ${QEMU}
+        QEMU OVMF:               ${QEMU_BIOS}
 ])
