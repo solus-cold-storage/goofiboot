@@ -140,14 +140,14 @@ $(efi_loadername): $(efi_solib)
 	  --target=efi-app-$(ARCH) $< $@
 
 # ------------------------------------------------------------------------------
-CLEANFILES += test-disk
+CLEANFILES += test-disk.img
 EXTRA_DIST += test/test-create-disk.sh
 
-test-disk: gummiboot$(MACHINE_TYPE_NAME).efi test/test-create-disk.sh
+test-disk.img: gummiboot$(MACHINE_TYPE_NAME).efi test/test-create-disk.sh
 	$(AM_V_GEN)test/test-create-disk.sh
 
-qemu: test-disk
-	$(QEMU) -m 256 -bios $(QEMU_BIOS) -snapshot test-disk
+qemu: test-disk.img
+	$(QEMU) -m 256 -bios $(QEMU_BIOS) -snapshot test-disk.img
 
 install-tree: all
 	rm -rf $(abs_srcdir)/install-tree

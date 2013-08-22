@@ -1,12 +1,12 @@
 #!/bin/bash -e
 
 # create GPT table with EFI System Partition
-rm -f test-disk
-dd if=/dev/null of=test-disk bs=1M seek=512 count=1
-parted --script test-disk "mklabel gpt" "mkpart ESP fat32 1M 512M" "set 1 boot on" "print"
+rm -f test-disk.img
+dd if=/dev/null of=test-disk.img bs=1M seek=512 count=1
+parted --script test-disk.img "mklabel gpt" "mkpart ESP fat32 1M 512M" "set 1 boot on" "print"
 
 # create FAT32 file system
-LOOP=$(losetup --show -f -P test-disk)
+LOOP=$(losetup --show -f -P test-disk.img)
 mkfs.vfat -F32 $LOOP
 mkdir -p mnt
 mount $LOOP mnt
