@@ -37,8 +37,8 @@ AC_SYS_LARGEFILE
 AC_PROG_CC
 
 dnl Don't try to use things like -std=c99 for efi compilation
-GNUEFI_CC=$CC
-AC_SUBST([GNUEFI_CC])
+EFI_CC=$CC
+AC_SUBST([EFI_CC])
 
 AC_PROG_CC_C99
 AM_PROG_CC_C_O
@@ -81,15 +81,25 @@ AC_CHECK_HEADER(efi/${ARCH}/efibind.h, [],
         [AC_MSG_ERROR([*** GNU EFI header efibind.h not found])])
 
 efiroot=$(echo $(cd /usr/lib/$(gcc -print-multi-os-directory); pwd))
-GNUEFI_LIBS="-L $efiroot"
+EFI_LIB_DIR="$efiroot"
+AC_ARG_WITH(efi-libdir,
+        AS_HELP_STRING([--with-efi-libdir=PATH], [Path to efi lib directory]),
+        [EFI_LIB_DIR="$withval"], [EFI_LIB_DIR="$efiroot"]
+)
+AC_SUBST([EFI_LIB_DIR])
 
 dnl extra objects and linker scripts
-GNUEFI_LDS_DIR="$efiroot"
-if test -d "${efiroot}/gnuefi"; then
-        GNUEFI_LDS_DIR="${efiroot}/gnuefi"
-fi
-AC_SUBST([GNUEFI_LIBS])
-AC_SUBST([GNUEFI_LDS_DIR])
+AC_ARG_WITH(efi-ldsdir,
+        AS_HELP_STRING([--with-efi-ldsdir=PATH], [Path to efi lds directory]),
+        [EFI_LDS_DIR="$withval"], [EFI_LDS_DIR="${efiroot}/gnuefi"]
+)
+AC_SUBST([EFI_LDS_DIR])
+
+AC_ARG_WITH(efi-includedir,
+        AS_HELP_STRING([--with-efi-includedir=PATH], [Path to efi include directory]),
+        [EFI_INC_DIR="$withval"], [EFI_INC_DIR="/usr/include"]
+)
+AC_SUBST([EFI_INC_DIR])
 
 # ------------------------------------------------------------------------------
 AC_ARG_ENABLE(blkid, AS_HELP_STRING([--disable-blkid], [disable blkid support]))
@@ -122,12 +132,14 @@ AC_OUTPUT
 AC_MSG_RESULT([
         $PACKAGE_NAME $VERSION
 
+        prefix:                  ${prefix}
         arch:                    $ARCH
         EFI machine type:        $MACHINE_TYPE_NAME
 
-        prefix:                  ${prefix}
-        efi libs:                ${GNUEFI_LIBS}
-        efi lds:                 ${GNUEFI_LDS_DIR}
+        EFI libdir:              ${EFI_LIB_DIR}
+        EFI ldsdir:              ${EFI_LDS_DIR}
+        EFI includedir:          ${EFI_INC_DIR}
+
         blkid:                   ${have_blkid}
         man pages:               ${have_manpages}
 

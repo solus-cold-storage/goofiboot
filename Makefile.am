@@ -75,12 +75,11 @@ CLEANFILES += man/gummiboot.8
 efi_loadername = gummiboot$(MACHINE_TYPE_NAME).efi
 efi_sources = src/efi/gummiboot.c
 
-EFI_INCDIR = /usr/include
 efi_cppflags = \
 	$(EFI_CPPFLAGS) \
 	-I$(top_builddir) -include config.h \
-	-I$(EFI_INCDIR)/efi \
-	-I$(EFI_INCDIR)/efi/$(ARCH) \
+	-I$(EFI_INC_DIR)/efi \
+	-I$(EFI_INC_DIR)/efi/$(ARCH) \
 	-DMACHINE_TYPE_NAME=\"$(MACHINE_TYPE_NAME)\"
 
 efi_cflags = \
@@ -108,13 +107,13 @@ endif
 
 efi_ldflags = \
 	$(EFI_LDLAGS) \
-	-T $(GNUEFI_LDS_DIR)/elf_$(ARCH)_efi.lds \
+	-T $(EFI_LDS_DIR)/elf_$(ARCH)_efi.lds \
 	-shared \
 	-Bsymbolic \
 	-nostdlib \
 	-znocombreloc \
-	$(GNUEFI_LIBS) \
-	$(GNUEFI_LDS_DIR)/crt0-efi-$(ARCH).o
+	-L $(EFI_LIB_DIR) \
+	$(EFI_LDS_DIR)/crt0-efi-$(ARCH).o
 
 efi_objects = $(addprefix $(top_builddir)/,$(efi_sources:.c=.o))
 efi_solib = $(top_builddir)/src/efi/gummiboot.so
@@ -126,7 +125,7 @@ EXTRA_DIST += $(efi_sources)
 
 $(top_builddir)/src/efi/%.o: $(top_srcdir)/src/efi/%.c
 	@$(MKDIR_P) $(top_builddir)/src/efi/
-	$(AM_V_CC)$(GNUEFI_CC) $(efi_cppflags) $(efi_cflags) -c $< -o $@
+	$(AM_V_CC)$(EFI_CC) $(efi_cppflags) $(efi_cflags) -c $< -o $@
 
 $(efi_solib): $(efi_objects)
 	$(AM_V_CCLD)$(LD) $(efi_ldflags) $(efi_objects) \
