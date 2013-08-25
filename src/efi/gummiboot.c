@@ -355,6 +355,7 @@ static EFI_STATUS key_read(UINT64 *key, BOOLEAN wait) {
         static BOOLEAN checked;
         EFI_KEY_DATA keydata;
         UINT32 shift = 0;
+        UINT64 keypress;
         UINTN index;
         EFI_STATUS err;
 
@@ -411,7 +412,14 @@ fallback:
         };
 
         /* 32 bit modifier keys + 16 bit scan code + 16 bit unicode */
-        *key = KEYPRESS(shift, keydata.Key.ScanCode, keydata.Key.UnicodeChar);
+        keypress = KEYPRESS(shift, keydata.Key.ScanCode, keydata.Key.UnicodeChar);
+        if (keypress == 0) {
+                /* some firmware exposes SimpleTextInputExProtocol, but it doesn't work */
+                TextInputEx = NULL;
+                goto fallback;
+        }
+
+        *key = keypress;
         return 0;
 }
 
