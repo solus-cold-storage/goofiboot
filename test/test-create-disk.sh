@@ -3,13 +3,13 @@
 # create GPT table with EFI System Partition
 rm -f test-disk.img
 dd if=/dev/null of=test-disk.img bs=1M seek=512 count=1
-parted --script test-disk.img "mklabel gpt" "mkpart ESP fat32 1M 512M" "set 1 boot on" "print"
+parted --script test-disk.img "mklabel gpt" "mkpart ESP fat32 1MiB 511MiB" "set 1 boot on"
 
 # create FAT32 file system
 LOOP=$(losetup --show -f -P test-disk.img)
-mkfs.vfat -F32 $LOOP
+mkfs.vfat -F32 ${LOOP}p1
 mkdir -p mnt
-mount $LOOP mnt
+mount ${LOOP}p1 mnt
 
 # install gummiboot
 mkdir -p mnt/EFI/Boot
