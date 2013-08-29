@@ -91,7 +91,14 @@ AC_SUBST([EFI_LIB_DIR])
 dnl extra objects and linker scripts
 AC_ARG_WITH(efi-ldsdir,
         AS_HELP_STRING([--with-efi-ldsdir=PATH], [Path to efi lds directory]),
-        [EFI_LDS_DIR="$withval"], [EFI_LDS_DIR="${efiroot}/gnuefi"]
+        [EFI_LDS_DIR="$withval"],
+        [
+                for EFI_LDS_DIR in "${efiroot}/gnuefi" "${efiroot}"; do
+                    for lds in ${EFI_LDS_DIR}/elf_${ARCH}_efi.lds; do
+                            test -f ${lds} && break
+                    done
+                done
+        ]
 )
 AC_SUBST([EFI_LDS_DIR])
 
