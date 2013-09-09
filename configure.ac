@@ -95,7 +95,7 @@ AC_ARG_WITH(efi-ldsdir,
         [
                 for EFI_LDS_DIR in "${efiroot}/gnuefi" "${efiroot}"; do
                     for lds in ${EFI_LDS_DIR}/elf_${ARCH}_efi.lds; do
-                            test -f ${lds} && break
+                            test -f ${lds} && break 2
                     done
                 done
         ]
