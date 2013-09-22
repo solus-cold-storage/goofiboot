@@ -284,10 +284,8 @@ static EFI_STATUS key_read(UINT64 *key, BOOLEAN wait) {
         EFI_GUID EfiSimpleTextInputExProtocolGuid = EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL_GUID;
         static EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL *TextInputEx;
         static BOOLEAN checked;
-        EFI_KEY_DATA keydata;
-        UINT32 shift = 0;
-        UINT64 keypress;
         UINTN index;
+        EFI_INPUT_KEY k;
         EFI_STATUS err;
 
         if (!checked) {
@@ -298,59 +296,49 @@ static EFI_STATUS key_read(UINT64 *key, BOOLEAN wait) {
                 checked = TRUE;
         }
 
-fallback:
-        if (!TextInputEx) {
-                EFI_INPUT_KEY k;
-
-                /* fallback for firmware which does not support SimpleTextInputExProtocol */
-                if (wait)
-                        uefi_call_wrapper(BS->WaitForEvent, 3, 1, &ST->ConIn->WaitForKey, &index);
-                err  = uefi_call_wrapper(ST->ConIn->ReadKeyStroke, 2, ST->ConIn, &k);
-                if (EFI_ERROR(err))
-                        return err;
-
-                *key = KEYPRESS(0, k.ScanCode, k.UnicodeChar);
-                return 0;
-        }
-
+        /* wait until key is pressed */
         if (wait) {
-                /* wait for key press */
-                err = uefi_call_wrapper(BS->WaitForEvent, 3, 1, &TextInputEx->WaitForKeyEx, &index);
-                if (EFI_ERROR(err)) {
-                        /* some firmware exposes SimpleTextInputExProtocol, but it doesn't work */
-                        TextInputEx = NULL;
-                        goto fallback;
+                if (TextInputEx)
+                        uefi_call_wrapper(BS->WaitForEvent, 3, 1, &TextInputEx->WaitForKeyEx, &index);
+                else
+                        uefi_call_wrapper(BS->WaitForEvent, 3, 1, &ST->ConIn->WaitForKey, &index);
+        }
+
+        if (TextInputEx) {
+                EFI_KEY_DATA keydata;
+                UINT64 keypress;
+
+                err = uefi_call_wrapper(TextInputEx->ReadKeyStrokeEx, 2, TextInputEx, &keydata);
+                if (!EFI_ERROR(err)) {
+                        UINT32 shift = 0;
+
+                        /* do not distinguish between left and right keys */
+                        if (keydata.KeyState.KeyShiftState & EFI_SHIFT_STATE_VALID) {
+                                if (keydata.KeyState.KeyShiftState & (EFI_RIGHT_CONTROL_PRESSED|EFI_LEFT_CONTROL_PRESSED))
+                                        shift |= EFI_CONTROL_PRESSED;
+                                if (keydata.KeyState.KeyShiftState & (EFI_RIGHT_ALT_PRESSED|EFI_LEFT_ALT_PRESSED))
+                                        shift |= EFI_ALT_PRESSED;
+                        };
+
+                        /* 32 bit modifier keys + 16 bit scan code + 16 bit unicode */
+                        keypress = KEYPRESS(shift, keydata.Key.ScanCode, keydata.Key.UnicodeChar);
+                        if (keypress > 0) {
+                                *key = keypress;
+                                return 0;
+                        }
                 }
         }
 
-        err = uefi_call_wrapper(TextInputEx->ReadKeyStrokeEx, 2, TextInputEx, &keydata);
-        if (EFI_ERROR(err)) {
-                if (err != EFI_NOT_READY) {
-                        /* some firmware exposes SimpleTextInputExProtocol, but it doesn't work */
-                        TextInputEx = NULL;
-                        goto fallback;
-                }
-
+        /* fallback for firmware which does not support SimpleTextInputExProtocol
+         *
+         * This is also called in case ReadKeyStrokeEx did not return a key, because
+         * some broken firmwares offer SimpleTextInputExProtocol, but never acually
+         * handle any key. */
+        err  = uefi_call_wrapper(ST->ConIn->ReadKeyStroke, 2, ST->ConIn, &k);
+        if (EFI_ERROR(err))
                 return err;
-        }
 
-        /* do not distinguish between left and right keys */
-        if (keydata.KeyState.KeyShiftState & EFI_SHIFT_STATE_VALID) {
-                if (keydata.KeyState.KeyShiftState & (EFI_RIGHT_CONTROL_PRESSED|EFI_LEFT_CONTROL_PRESSED))
-                        shift |= EFI_CONTROL_PRESSED;
-                if (keydata.KeyState.KeyShiftState & (EFI_RIGHT_ALT_PRESSED|EFI_LEFT_ALT_PRESSED))
-                        shift |= EFI_ALT_PRESSED;
-        };
-
-        /* 32 bit modifier keys + 16 bit scan code + 16 bit unicode */
-        keypress = KEYPRESS(shift, keydata.Key.ScanCode, keydata.Key.UnicodeChar);
-        if (keypress == 0) {
-                /* some firmware exposes SimpleTextInputExProtocol, but it doesn't work */
-                TextInputEx = NULL;
-                goto fallback;
-        }
-
-        *key = keypress;
+        *key = KEYPRESS(0, k.ScanCode, k.UnicodeChar);
         return 0;
 }
 
