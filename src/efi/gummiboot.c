@@ -98,101 +98,32 @@ static UINT64 ticks_read(void) {
 }
 #endif
 
-static void cpuid_read(UINT32 info, UINT32 *eax, UINT32 *ebx, UINT32 *ecx, UINT32 *edx) {
-        *eax = info;
-        __asm__ volatile (
-                "mov %%ebx, %%edi;"
-                "cpuid;"
-                "mov %%ebx, %%esi;"
-                "mov %%edi, %%ebx;"
-                :"+a" (*eax), "=S" (*ebx), "=c" (*ecx), "=d" (*edx)
-                : :"edi"
-        );
-}
+/* count TSC ticks during a millisecond delay */
+static UINT64 ticks_freq(void) {
+        UINT64 ticks_start, ticks_end;
 
-static UINT64 cpufreq_read(void) {
-        UINT32 eax, ebx, ecx, edx;
-        union {
-                UINT32 i[3][4];
-                CHAR8 s[4 * 4 * 3 + 1];
-        } brand;
-        UINTN i;
-        CHAR8 *s;
-        UINT64 scale;
-        CHAR16 *str;
-        static UINT64 usec;
+        ticks_start = ticks_read();
+        uefi_call_wrapper(BS->Stall, 1, 1000);
+        ticks_end = ticks_read();
 
-        if (usec > 0)
-                return usec;
-
-        for (i = 0; i < 3; i++) {
-                cpuid_read(0x80000002 + i, &eax, &ebx, &ecx, &edx);
-                brand.i[i][0] = eax;
-                brand.i[i][1] = ebx;
-                brand.i[i][2] = ecx;
-                brand.i[i][3] = edx;
-        }
-        brand.s[4 * 4 * 3] = '\0';
-
-        /*
-         * Extract:
-         *   “x.xxyHz” or “xxxxyHz”, where y=M,G,T
-         * from CPUID brand string:
-         *   Intel(R) Core(TM) i5-2540M CPU @ 2.60GHz
-         *
-         * http://www.intel.com/content/dam/www/public/us/en/documents/
-         *   application-notes/processor-identification-cpuid-instruction-note.pdf
-         */
-        s = NULL;
-        for (i = 4; i < (4 * 4 * 3) - 2; i++) {
-                if (brand.s[i+1] == 'H' && brand.s[i+2] == 'z') {
-                        s = brand.s + i;
-                        break;
-                }
-        }
-        if (!s)
-                return 0;
-
-        scale = 1000;
-        switch(*s){
-        case 'T':
-                scale *= 1000;
-        case 'G':
-                scale *= 1000;
-        case 'M':
-                scale *= 1000;
-                break;
-        default:
-                return 0;
-        }
-
-        s -= 4;
-        s[4] = '\0';
-        if (s[1] == '.') {
-                s[1] = s[0];
-                s++;
-                scale /= 100;
-        }
-
-        str = stra_to_str(s);
-        usec = Atoi(str) * scale;
-        FreePool(str);
-        return usec;
+        return (ticks_end - ticks_start) * 1000;
 }
 
 static UINT64 time_usec(void) {
         UINT64 ticks;
-        UINT64 cpufreq;
+        static UINT64 freq;
 
         ticks = ticks_read();
         if (ticks == 0)
                 return 0;
 
-        cpufreq = cpufreq_read();
-        if (cpufreq == 0)
-                return 0;
+        if (freq == 0) {
+                freq = ticks_freq();
+                if (freq == 0)
+                        return 0;
+        }
 
-        return 1000 * 1000 * ticks / cpufreq;
+        return 1000 * 1000 * ticks / freq;
 }
 
 static EFI_STATUS efivar_set_raw(const EFI_GUID *vendor, CHAR16 *name, CHAR8 *buf, UINTN size, BOOLEAN persistent) {
