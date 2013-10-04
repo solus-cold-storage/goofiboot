@@ -1929,10 +1929,10 @@ static BOOLEAN config_entry_add_loader(Config *config, EFI_HANDLE *device, EFI_F
         return TRUE;
 }
 
-static VOID config_entry_add_loader_auto(Config *config, EFI_HANDLE *device, EFI_FILE *root_dir, CHAR16 *loaded_image_path,
+static BOOLEAN config_entry_add_loader_auto(Config *config, EFI_HANDLE *device, EFI_FILE *root_dir, CHAR16 *loaded_image_path,
                                          CHAR16 *file, CHAR16 key, CHAR16 *title, CHAR16 *loader) {
         if (!config_entry_add_loader(config, device, root_dir, loaded_image_path, file, key, title, loader))
-                return;
+                return FALSE;
 
         /* export identifiers of automatically added entries */
         if (config->entries_auto) {
@@ -1943,6 +1943,8 @@ static VOID config_entry_add_loader_auto(Config *config, EFI_HANDLE *device, EFI
                 config->entries_auto = s;
         } else
                 config->entries_auto = StrDuplicate(file);
+
+        return TRUE;
 }
 
 static VOID config_entry_add_osx(Config *config) {
@@ -1956,13 +1958,16 @@ static VOID config_entry_add_osx(Config *config) {
 
                 for (i = 0; i < handle_count; i++) {
                         EFI_FILE *root;
+                        BOOLEAN found;
 
                         root = LibOpenRoot(handles[i]);
                         if (!root)
                                 continue;
-                        config_entry_add_loader_auto(config, handles[i], root, NULL, L"auto-osx", 'a', L"OS X",
-                                                     L"\\System\\Library\\CoreServices\\boot.efi");
+                        found = config_entry_add_loader_auto(config, handles[i], root, NULL, L"auto-osx", 'a', L"OS X",
+                                                             L"\\System\\Library\\CoreServices\\boot.efi");
                         uefi_call_wrapper(root->Close, 1, root);
+                        if (found)
+                                break;
                 }
 
                 FreePool(handles);
