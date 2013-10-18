@@ -492,6 +492,8 @@ static BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max, UINTN 
                         line[len] = '\0';
                         continue;
 
+                case KEYPRESS(EFI_CONTROL_PRESSED, 0, 'w'):
+                case KEYPRESS(EFI_CONTROL_PRESSED, 0, CHAR_CTRL('w')):
                 case KEYPRESS(EFI_ALT_PRESSED, 0, CHAR_BACKSPACE):
                         /* backward-kill-word */
                         clear = 0;
