@@ -73,7 +73,8 @@ CLEANFILES += man/gummiboot.8
 # bypasses regular automake to provide absolute control on compiler and linker
 # flags.
 efi_loadername = gummiboot$(MACHINE_TYPE_NAME).efi
-efi_sources = src/efi/gummiboot.c
+efi_sources = \
+	src/efi/gummiboot.c
 
 efi_cppflags = \
 	$(EFI_CPPFLAGS) \
