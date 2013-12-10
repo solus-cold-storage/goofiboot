@@ -1,3 +1,5 @@
+/*-*- Mode: C; c-basic-offset: 8; indent-tabs-mode: nil -*-*/
+
 /*
  * Simple UEFI boot loader which executes configured EFI images, where the
  * default entry is selected by a configured pattern (glob) or an on-screen
