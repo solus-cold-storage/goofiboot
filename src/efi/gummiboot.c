@@ -1595,7 +1595,7 @@ static VOID config_entry_add_from_file(Config *config, EFI_HANDLE *device, CHAR1
         config_add_entry(config, entry);
 }
 
-static UINTN file_read(EFI_FILE_HANDLE dir, CHAR16 *name, CHAR8 **content) {
+UINTN file_read(EFI_FILE_HANDLE dir, CHAR16 *name, CHAR8 **content) {
         EFI_FILE_HANDLE handle;
         EFI_FILE_INFO *info;
         CHAR8 *buf;
