@@ -29,6 +29,7 @@
 #include <efilib.h>
 
 #include "util.h"
+#include "console.h"
 #include "graphics.h"
 
 #ifndef EFI_OS_INDICATIONS_BOOT_TO_FW_UI
@@ -79,136 +80,6 @@ typedef struct {
         CHAR16 *options_edit;
         CHAR16 *entries_auto;
 } Config;
-
-#define EFI_SHIFT_STATE_VALID           0x80000000
-#define EFI_RIGHT_CONTROL_PRESSED       0x00000004
-#define EFI_LEFT_CONTROL_PRESSED        0x00000008
-#define EFI_RIGHT_ALT_PRESSED           0x00000010
-#define EFI_LEFT_ALT_PRESSED            0x00000020
-#define EFI_CONTROL_PRESSED             (EFI_RIGHT_CONTROL_PRESSED|EFI_LEFT_CONTROL_PRESSED)
-#define EFI_ALT_PRESSED                 (EFI_RIGHT_ALT_PRESSED|EFI_LEFT_ALT_PRESSED)
-#define KEYPRESS(keys, scan, uni) ((((UINT64)keys) << 32) | ((scan) << 16) | (uni))
-#define KEYCHAR(k) ((k) & 0xffff)
-#define CHAR_CTRL(c) ((c) - 'a' + 1)
-
-static EFI_STATUS key_read(UINT64 *key, BOOLEAN wait) {
-        #define EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL_GUID \
-                { 0xdd9e7534, 0x7762, 0x4698, { 0x8c, 0x14, 0xf5, 0x85, 0x17, 0xa6, 0x25, 0xaa } }
-
-        struct _EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL;
-
-        typedef EFI_STATUS (EFIAPI *EFI_INPUT_RESET_EX)(
-                struct _EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL *This;
-                BOOLEAN ExtendedVerification;
-        );
-
-        typedef UINT8 EFI_KEY_TOGGLE_STATE;
-
-        typedef struct {
-                UINT32 KeyShiftState;
-                EFI_KEY_TOGGLE_STATE KeyToggleState;
-        } EFI_KEY_STATE;
-
-        typedef struct {
-                EFI_INPUT_KEY Key;
-                EFI_KEY_STATE KeyState;
-        } EFI_KEY_DATA;
-
-        typedef EFI_STATUS (EFIAPI *EFI_INPUT_READ_KEY_EX)(
-                struct _EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL *This;
-                EFI_KEY_DATA *KeyData;
-        );
-
-        typedef EFI_STATUS (EFIAPI *EFI_SET_STATE)(
-                struct _EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL *This;
-                EFI_KEY_TOGGLE_STATE *KeyToggleState;
-        );
-
-        typedef EFI_STATUS (EFIAPI *EFI_KEY_NOTIFY_FUNCTION)(
-                EFI_KEY_DATA *KeyData;
-        );
-
-        typedef EFI_STATUS (EFIAPI *EFI_REGISTER_KEYSTROKE_NOTIFY)(
-                struct _EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL *This;
-                EFI_KEY_DATA KeyData;
-                EFI_KEY_NOTIFY_FUNCTION KeyNotificationFunction;
-                VOID **NotifyHandle;
-        );
-
-        typedef EFI_STATUS (EFIAPI *EFI_UNREGISTER_KEYSTROKE_NOTIFY)(
-                struct _EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL *This;
-                VOID *NotificationHandle;
-        );
-
-        typedef struct _EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL {
-                EFI_INPUT_RESET_EX Reset;
-                EFI_INPUT_READ_KEY_EX ReadKeyStrokeEx;
-                EFI_EVENT WaitForKeyEx;
-                EFI_SET_STATE SetState;
-                EFI_REGISTER_KEYSTROKE_NOTIFY RegisterKeyNotify;
-                EFI_UNREGISTER_KEYSTROKE_NOTIFY UnregisterKeyNotify;
-        } EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL;
-
-        EFI_GUID EfiSimpleTextInputExProtocolGuid = EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL_GUID;
-        static EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL *TextInputEx;
-        static BOOLEAN checked;
-        UINTN index;
-        EFI_INPUT_KEY k;
-        EFI_STATUS err;
-
-        if (!checked) {
-                err = LibLocateProtocol(&EfiSimpleTextInputExProtocolGuid, (VOID **)&TextInputEx);
-                if (EFI_ERROR(err))
-                        TextInputEx = NULL;
-
-                checked = TRUE;
-        }
-
-        /* wait until key is pressed */
-        if (wait) {
-                if (TextInputEx)
-                        uefi_call_wrapper(BS->WaitForEvent, 3, 1, &TextInputEx->WaitForKeyEx, &index);
-                else
-                        uefi_call_wrapper(BS->WaitForEvent, 3, 1, &ST->ConIn->WaitForKey, &index);
-        }
-
-        if (TextInputEx) {
-                EFI_KEY_DATA keydata;
-                UINT64 keypress;
-
-                err = uefi_call_wrapper(TextInputEx->ReadKeyStrokeEx, 2, TextInputEx, &keydata);
-                if (!EFI_ERROR(err)) {
-                        UINT32 shift = 0;
-
-                        /* do not distinguish between left and right keys */
-                        if (keydata.KeyState.KeyShiftState & EFI_SHIFT_STATE_VALID) {
-                                if (keydata.KeyState.KeyShiftState & (EFI_RIGHT_CONTROL_PRESSED|EFI_LEFT_CONTROL_PRESSED))
-                                        shift |= EFI_CONTROL_PRESSED;
-                                if (keydata.KeyState.KeyShiftState & (EFI_RIGHT_ALT_PRESSED|EFI_LEFT_ALT_PRESSED))
-                                        shift |= EFI_ALT_PRESSED;
-                        };
-
-                        /* 32 bit modifier keys + 16 bit scan code + 16 bit unicode */
-                        keypress = KEYPRESS(shift, keydata.Key.ScanCode, keydata.Key.UnicodeChar);
-                        if (keypress > 0) {
-                                *key = keypress;
-                                return 0;
-                        }
-                }
-        }
-
-        /* fallback for firmware which does not support SimpleTextInputExProtocol
-         *
-         * This is also called in case ReadKeyStrokeEx did not return a key, because
-         * some broken firmwares offer SimpleTextInputExProtocol, but never acually
-         * handle any key. */
-        err  = uefi_call_wrapper(ST->ConIn->ReadKeyStroke, 2, ST->ConIn, &k);
-        if (EFI_ERROR(err))
-                return err;
-
-        *key = KEYPRESS(0, k.ScanCode, k.UnicodeChar);
-        return 0;
-}
 
 static void cursor_left(UINTN *cursor, UINTN *first)
 {
@@ -271,7 +142,7 @@ static BOOLEAN line_edit(CHAR16 *line_in, CHAR16 **line_out, UINTN x_max, UINTN 
                 uefi_call_wrapper(ST->ConOut->OutputString, 2, ST->ConOut, print);
                 uefi_call_wrapper(ST->ConOut->SetCursorPosition, 3, ST->ConOut, cursor, y_pos);
 
-                err = key_read(&key, TRUE);
+                err = console_key_read(&key, TRUE);
                 if (EFI_ERROR(err))
                         continue;
 
@@ -557,7 +428,7 @@ static VOID print_status(Config *config, CHAR16 *loaded_image_path) {
         }
 
         Print(L"\n--- press key ---\n\n");
-        key_read(&key, TRUE);
+        console_key_read(&key, TRUE);
 
         for (i = 0; i < config->entry_count; i++) {
                 ConfigEntry *entry;
@@ -596,7 +467,7 @@ static VOID print_status(Config *config, CHAR16 *loaded_image_path) {
                         Print(L"internal call           yes\n");
 
                 Print(L"\n--- press key ---\n\n");
-                key_read(&key, TRUE);
+                console_key_read(&key, TRUE);
         }
 
         uefi_call_wrapper(ST->ConOut->ClearScreen, 1, ST->ConOut);
@@ -764,7 +635,7 @@ static BOOLEAN menu_run(Config *config, ConfigEntry **chosen_entry, CHAR16 *load
                         uefi_call_wrapper(ST->ConOut->OutputString, 2, ST->ConOut, clearline+1 + x + len);
                 }
 
-                err = key_read(&key, wait);
+                err = console_key_read(&key, wait);
                 if (EFI_ERROR(err)) {
                         /* timeout reached */
                         if (timeout_remain == 0) {
@@ -1845,7 +1716,7 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table) {
         if (config.timeout_sec == 0) {
                 UINT64 key;
 
-                err = key_read(&key, FALSE);
+                err = console_key_read(&key, FALSE);
                 if (!EFI_ERROR(err)) {
                         INT16 idx;
 

@@ -83,6 +83,13 @@ EFI_STATUS efivar_set(CHAR16 *name, CHAR16 *value, BOOLEAN persistent) {
         return efivar_set_raw(&loader_guid, name, (CHAR8 *)value, value ? (StrLen(value)+1) * sizeof(CHAR16) : 0, persistent);
 }
 
+EFI_STATUS efivar_set_int(CHAR16 *name, UINTN i, BOOLEAN persistent) {
+        CHAR16 str[32];
+
+        SPrint(str, 32, L"%d", i);
+        return efivar_set(name, str, persistent);
+}
+
 EFI_STATUS efivar_get(CHAR16 *name, CHAR16 **value) {
         CHAR8 *buf;
         CHAR16 *val;
@@ -101,13 +108,6 @@ EFI_STATUS efivar_get(CHAR16 *name, CHAR16 **value) {
 
         *value = val;
         return EFI_SUCCESS;
-}
-
-EFI_STATUS efivar_set_int(CHAR16 *name, UINTN i, BOOLEAN persistent) {
-        CHAR16 str[32];
-
-        SPrint(str, 32, L"%d", i);
-        return efivar_set(name, str, persistent);
 }
 
 EFI_STATUS efivar_get_int(CHAR16 *name, UINTN *i) {
@@ -309,5 +309,3 @@ UINTN file_read(EFI_FILE_HANDLE dir, CHAR16 *name, CHAR8 **content) {
 out:
         return len;
 }
-
-
