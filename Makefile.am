@@ -74,6 +74,7 @@ CLEANFILES += man/gummiboot.8
 # flags.
 efi_loadername = gummiboot$(MACHINE_TYPE_NAME).efi
 efi_sources = \
+	src/efi/util.c \
 	src/efi/graphics.c \
 	src/efi/gummiboot.c
 
