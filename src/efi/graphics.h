@@ -21,4 +21,5 @@
 #define __GUMMIBOOT_GRAPHICS_H
 
 EFI_STATUS graphics_mode(BOOLEAN on);
+EFI_STATUS graphics_splash(EFI_FILE *root_dir, CHAR16 *path);
 #endif

@@ -280,17 +280,17 @@ CHAR8 *strchra(CHAR8 *s, CHAR8 c) {
         return NULL;
 }
 
-UINTN file_read(EFI_FILE_HANDLE dir, CHAR16 *name, CHAR8 **content) {
+INTN file_read(EFI_FILE_HANDLE dir, CHAR16 *name, CHAR8 **content) {
         EFI_FILE_HANDLE handle;
         EFI_FILE_INFO *info;
         CHAR8 *buf;
         UINTN buflen;
         EFI_STATUS err;
-        UINTN len = 0;
+        UINTN len;
 
         err = uefi_call_wrapper(dir->Open, 5, dir, &handle, name, EFI_FILE_MODE_READ, 0ULL);
         if (EFI_ERROR(err))
-                goto out;
+                return err;
 
         info = LibFileInfo(handle);
         buflen = info->FileSize+1;
@@ -301,11 +301,12 @@ UINTN file_read(EFI_FILE_HANDLE dir, CHAR16 *name, CHAR8 **content) {
                 buf[buflen] = '\0';
                 *content = buf;
                 len = buflen;
-        } else
+        } else {
+                len = err;
                 FreePool(buf);
+        }
 
         FreePool(info);
         uefi_call_wrapper(handle->Close, 1, handle);
-out:
         return len;
 }

@@ -61,6 +61,7 @@ typedef struct {
         enum loader_type type;
         CHAR16 *loader;
         CHAR16 *options;
+        CHAR16 *splash;
         CHAR16 key;
         EFI_STATUS (*call)(void);
         BOOLEAN no_autoselect;
@@ -76,6 +77,7 @@ typedef struct {
         UINTN timeout_sec_config;
         INTN timeout_sec_efivar;
         CHAR16 *entry_default_pattern;
+        CHAR16 *splash;
         CHAR16 *entry_oneshot;
         CHAR16 *options_edit;
         CHAR16 *entries_auto;
@@ -402,6 +404,8 @@ static VOID print_status(Config *config, CHAR16 *loaded_image_path) {
         Print(L"timeout (config):       %d\n", config->timeout_sec_config);
         if (config->entry_default_pattern)
                 Print(L"default pattern:        '%s'\n", config->entry_default_pattern);
+        if (config->splash)
+                Print(L"splash                  '%s'\n", config->splash);
         Print(L"\n");
 
         Print(L"config entry count:     %d\n", config->entry_count);
@@ -462,6 +466,8 @@ static VOID print_status(Config *config, CHAR16 *loaded_image_path) {
                         Print(L"loader                  '%s'\n", entry->loader);
                 if (entry->options)
                         Print(L"options                 '%s'\n", entry->options);
+                if (entry->splash)
+                        Print(L"splash                  '%s'\n", entry->splash);
                 Print(L"auto-select             %s\n", entry->no_autoselect ? L"no" : L"yes");
                 if (entry->call)
                         Print(L"internal call           yes\n");
@@ -995,9 +1001,15 @@ static VOID config_defaults_load_from_file(Config *config, CHAR8 *content) {
                         FreePool(s);
                         continue;
                 }
+
                 if (strcmpa((CHAR8 *)"default", key) == 0) {
                         config->entry_default_pattern = stra_to_str(value);
                         StrLwr(config->entry_default_pattern);
+                        continue;
+                }
+
+                if (strcmpa((CHAR8 *)"splash", key) == 0) {
+                        config->splash = stra_to_path(value);
                         continue;
                 }
         }
@@ -1085,6 +1097,12 @@ static VOID config_entry_add_from_file(Config *config, EFI_HANDLE *device, CHAR1
                                 new = NULL;
                         }
                         FreePool(new);
+                        continue;
+                }
+
+                if (strcmpa((CHAR8 *)"splash", key) == 0) {
+                        FreePool(entry->splash);
+                        entry->splash = stra_to_path(value);
                         continue;
                 }
         }
@@ -1745,7 +1763,10 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table) {
                                 entry->call();
                                 continue;
                         }
-                }
+                } else if (entry->splash)
+                        graphics_splash(root_dir, entry->splash);
+                else if (config.splash)
+                        graphics_splash(root_dir, config.splash);
 
                 /* export the selected boot entry to the system */
                 efivar_set(L"LoaderEntrySelected", entry->file, FALSE);
