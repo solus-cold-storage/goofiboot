@@ -1482,9 +1482,15 @@ static BOOLEAN config_entry_add_loader(Config *config, EFI_HANDLE *device, EFI_F
         entry->loader = StrDuplicate(loader);
         entry->file = StrDuplicate(file);
         StrLwr(entry->file);
-        entry->no_autoselect = TRUE;
         entry->key = key;
         config_add_entry(config, entry);
+
+        /* do not boot right away into aut-detected entries */
+        entry->no_autoselect = TRUE;
+
+        /* do not show a splash; they do not need one, or they draw their own */
+        entry->splash = StrDuplicate(L"");
+
         return TRUE;
 }
 
@@ -1767,8 +1773,13 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table) {
                         err = EFI_NOT_FOUND;
 
                         /* splash from entry file */
-                        if (entry->splash)
-                                err = graphics_splash(root_dir, entry->splash);
+                        if (entry->splash) {
+                                /* some entries disable the splash because they draw their own */
+                                if (entry->splash[0] == '\0')
+                                        err = EFI_SUCCESS;
+                                else
+                                        err = graphics_splash(root_dir, entry->splash);
+                        }
 
                         /* splash from config file */
                         if (EFI_ERROR(err) && config.splash)
