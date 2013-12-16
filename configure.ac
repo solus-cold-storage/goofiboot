@@ -66,7 +66,7 @@ AC_SUBST([MACHINE_TYPE_NAME])
 
 # QEMU and OVMF UEFI firmware
 AS_IF([test x"$cross_compiling" = "xyes"], [], [
-        AC_PATH_PROG([QEMU], [qemu-kvm])
+        AC_PATH_PROG([QEMU], [qemu-system-x86_64])
         AC_CHECK_FILE([/usr/share/qemu/bios-ovmf.bin], [QEMU_BIOS=/usr/share/qemu/bios-ovmf.bin])
         AC_CHECK_FILE([/usr/share/qemu-ovmf/bios],     [QEMU_BIOS=/usr/share/qemu-ovmf/bios/bios.bin])
         AC_SUBST([QEMU_BIOS])
