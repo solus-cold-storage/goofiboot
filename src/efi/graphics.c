@@ -249,9 +249,9 @@ EFI_STATUS bmp_to_blt(UINT8 *bmp, UINTN size,
                         }
                 }
 
-                /* add row padding */
+                /* add row padding; new lines always start at 32 bit boundary */
                 row_size = in - (bmp + file->offset);
-                in += 4 - (row_size % 4);
+                in += ((row_size + 3) & ~3) - row_size;
         }
 
         *blt = buf;
