@@ -375,17 +375,18 @@ static VOID print_status(Config *config, EFI_FILE *root_dir, CHAR16 *loaded_imag
         UINTN size;
         EFI_STATUS err;
 
+        err = EFI_NOT_FOUND;
+        if (config->splash)
+                err = graphics_splash(root_dir, config->splash);
+        if (EFI_ERROR(err))
+                err = graphics_splash(root_dir, L"\\EFI\\gummiboot\\splash.bmp");
+        if (!EFI_ERROR(err)) {
+                console_key_read(&key, TRUE);
+                graphics_mode(FALSE);
+        }
+
         uefi_call_wrapper(ST->ConOut->SetAttribute, 2, ST->ConOut, EFI_LIGHTGRAY|EFI_BACKGROUND_BLACK);
         uefi_call_wrapper(ST->ConOut->ClearScreen, 1, ST->ConOut);
-
-        if (config->splash) {
-                err = graphics_splash(root_dir, config->splash);
-                if (!EFI_ERROR(err))
-                        console_key_read(&key, TRUE);
-
-                graphics_mode(FALSE);
-                uefi_call_wrapper(ST->ConOut->ClearScreen, 1, ST->ConOut);
-        }
 
         Print(L"gummiboot version:      " VERSION "\n");
         Print(L"loaded image:           %s\n", loaded_image_path);
@@ -451,6 +452,15 @@ static VOID print_status(Config *config, EFI_FILE *root_dir, CHAR16 *loaded_imag
                         break;
 
                 entry = config->entries[i];
+
+                if (entry->splash) {
+                        err = graphics_splash(root_dir, entry->splash);
+                        if (!EFI_ERROR(err)) {
+                                console_key_read(&key, TRUE);
+                                graphics_mode(FALSE);
+                        }
+                }
+
                 Print(L"config entry:           %d/%d\n", i+1, config->entry_count);
                 if (entry->file)
                         Print(L"file                    '%s'\n", entry->file);
