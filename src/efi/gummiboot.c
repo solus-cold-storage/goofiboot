@@ -1763,10 +1763,21 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table) {
                                 entry->call();
                                 continue;
                         }
-                } else if (entry->splash)
-                        graphics_splash(root_dir, entry->splash);
-                else if (config.splash)
-                        graphics_splash(root_dir, config.splash);
+                } else {
+                        err = EFI_NOT_FOUND;
+
+                        /* splash from entry file */
+                        if (entry->splash)
+                                err = graphics_splash(root_dir, entry->splash);
+
+                        /* splash from config file */
+                        if (EFI_ERROR(err) && config.splash)
+                                err = graphics_splash(root_dir, config.splash);
+
+                        /* default splash */
+                        if (EFI_ERROR(err))
+                                graphics_splash(root_dir, L"\\EFI\\gummiboot\\splash.bmp");
+                }
 
                 /* export the selected boot entry to the system */
                 efivar_set(L"LoaderEntrySelected", entry->file, FALSE);
