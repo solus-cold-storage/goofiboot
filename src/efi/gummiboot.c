@@ -367,15 +367,25 @@ static UINTN entry_lookup_key(Config *config, UINTN start, CHAR16 key) {
         return -1;
 }
 
-static VOID print_status(Config *config, CHAR16 *loaded_image_path) {
+static VOID print_status(Config *config, EFI_FILE *root_dir, CHAR16 *loaded_image_path) {
         UINT64 key;
         UINTN i;
         CHAR16 *s;
         CHAR8 *b;
         UINTN size;
+        EFI_STATUS err;
 
         uefi_call_wrapper(ST->ConOut->SetAttribute, 2, ST->ConOut, EFI_LIGHTGRAY|EFI_BACKGROUND_BLACK);
         uefi_call_wrapper(ST->ConOut->ClearScreen, 1, ST->ConOut);
+
+        if (config->splash) {
+                err = graphics_splash(root_dir, config->splash);
+                if (!EFI_ERROR(err))
+                        console_key_read(&key, TRUE);
+
+                graphics_mode(FALSE);
+                uefi_call_wrapper(ST->ConOut->ClearScreen, 1, ST->ConOut);
+        }
 
         Print(L"gummiboot version:      " VERSION "\n");
         Print(L"loaded image:           %s\n", loaded_image_path);
@@ -479,7 +489,7 @@ static VOID print_status(Config *config, CHAR16 *loaded_image_path) {
         uefi_call_wrapper(ST->ConOut->ClearScreen, 1, ST->ConOut);
 }
 
-static BOOLEAN menu_run(Config *config, ConfigEntry **chosen_entry, CHAR16 *loaded_image_path) {
+static BOOLEAN menu_run(Config *config, ConfigEntry **chosen_entry, EFI_FILE *root_dir, CHAR16 *loaded_image_path) {
         EFI_STATUS err;
         UINTN visible_max;
         UINTN idx_highlight;
@@ -800,7 +810,7 @@ static BOOLEAN menu_run(Config *config, ConfigEntry **chosen_entry, CHAR16 *load
                         break;
 
                 case KEYPRESS(0, 0, 'P'):
-                        print_status(config, loaded_image_path);
+                        print_status(config, root_dir, loaded_image_path);
                         refresh = TRUE;
                         break;
 
@@ -1761,7 +1771,7 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table) {
                 if (menu) {
                         efivar_set_time_usec(L"LoaderTimeMenuUSec", 0);
                         uefi_call_wrapper(BS->SetWatchdogTimer, 4, 0, 0x10000, 0, NULL);
-                        if (!menu_run(&config, &entry, loaded_image_path))
+                        if (!menu_run(&config, &entry, root_dir, loaded_image_path))
                                 break;
 
                         /* run special entry like "reboot" */
