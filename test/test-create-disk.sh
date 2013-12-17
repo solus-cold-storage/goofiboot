@@ -14,7 +14,7 @@ mount ${LOOP}p1 mnt
 # install gummiboot
 mkdir -p mnt/EFI/{Boot,gummiboot}
 cp gummibootx64.efi mnt/EFI/Boot/bootx64.efi
-cp splash.bmp mnt/EFI/gummiboot/
+cp test/splash.bmp mnt/EFI/gummiboot/
 
 [ -e /boot/shellx64.efi ] && cp /boot/shellx64.efi mnt/
 
