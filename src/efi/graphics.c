@@ -140,8 +140,6 @@ EFI_STATUS bmp_to_blt(UINT8 *bmp, UINTN size,
 
         /*  check device-independent bitmap */
         dib = (struct bmp_dib *)(bmp + sizeof(struct bmp_file));
-        if (dib->compression != 0)
-                return EFI_UNSUPPORTED;
         if (dib->size < sizeof(struct bmp_dib))
                 return EFI_UNSUPPORTED;
 
@@ -150,7 +148,18 @@ EFI_STATUS bmp_to_blt(UINT8 *bmp, UINTN size,
         case 4:
         case 8:
         case 24:
+                if (dib->compression != 0)
+                        return EFI_UNSUPPORTED;
+
                 break;
+
+        case 16:
+        case 32:
+                if (dib->compression != 0 && dib->compression != 3)
+                        return EFI_UNSUPPORTED;
+
+                break;
+
         default:
                 return EFI_UNSUPPORTED;
         }
@@ -242,11 +251,26 @@ EFI_STATUS bmp_to_blt(UINT8 *bmp, UINTN size,
                                 out->Blue = map[*in].blue;
                                 break;
 
+                        case 16: {
+                                out->Red = ((in[1] >> 2) & 0x1f) << 3;
+                                out->Green = (((in[1] << 3) & 0x1f) + (in[0] >> 5)) << 3;
+                                out->Blue = ((in[0] & 0x1f)) << 3;
+                                in += 1;
+                                break;
+                        }
+
                         case 24:
                                 out->Red = in[2];
                                 out->Green = in[1];
                                 out->Blue = in[0];
                                 in += 2;
+                                break;
+
+                        case 32:
+                                out->Red = in[3];
+                                out->Green = in[2];
+                                out->Blue = in[1];
+                                in += 3;
                                 break;
                         }
                 }
