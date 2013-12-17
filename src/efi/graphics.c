@@ -91,6 +91,8 @@ struct bmp_file {
         UINT32 offset;
 } __attribute__((packed));
 
+/* we require at least BITMAPINFOHEADER, later versions are
+   accepted, but their features ignored */
 struct bmp_dib {
         UINT32 size;
         UINT32 x;
@@ -140,7 +142,7 @@ EFI_STATUS bmp_to_blt(UINT8 *bmp, UINTN size,
         dib = (struct bmp_dib *)(bmp + sizeof(struct bmp_file));
         if (dib->compression != 0)
                 return EFI_UNSUPPORTED;
-        if (dib->size != sizeof(struct bmp_dib))
+        if (dib->size < sizeof(struct bmp_dib))
                 return EFI_UNSUPPORTED;
 
         switch (dib->depth) {
@@ -154,17 +156,17 @@ EFI_STATUS bmp_to_blt(UINT8 *bmp, UINTN size,
         }
 
         row_size = (((dib->depth * dib->x) + 31) / 32) * 4;
-        if (file->size - file->offset !=  dib->y * row_size)
+        if (file->size - file->offset <  dib->y * row_size)
                 return EFI_INVALID_PARAMETER;
         if (row_size * dib->y > 64 * 1024 * 1024)
                 return EFI_INVALID_PARAMETER;
 
         /* check color table */
-        map = (struct bmp_map *)(bmp + sizeof(struct bmp_file) + sizeof(struct bmp_dib));
-        if (file->offset < sizeof(struct bmp_file) + sizeof(struct bmp_dib))
+        map = (struct bmp_map *)(bmp + sizeof(struct bmp_file) + dib->size);
+        if (file->offset < sizeof(struct bmp_file) + dib->size)
                 return EFI_INVALID_PARAMETER;
 
-        if (file->offset > sizeof(struct bmp_file) + sizeof(struct bmp_dib)) {
+        if (file->offset > sizeof(struct bmp_file) + dib->size) {
                 UINT32 map_count;
                 UINTN map_size;
 
@@ -180,7 +182,7 @@ EFI_STATUS bmp_to_blt(UINT8 *bmp, UINTN size,
                         break;
                 }
 
-                map_size = file->offset - (sizeof(struct bmp_file) + sizeof(struct bmp_dib));
+                map_size = file->offset - (sizeof(struct bmp_file) + dib->size);
                 if (map_size != sizeof(struct bmp_map) * map_count)
                         return EFI_INVALID_PARAMETER;
         }
