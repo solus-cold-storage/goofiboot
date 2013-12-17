@@ -252,9 +252,11 @@ EFI_STATUS bmp_to_blt(UINT8 *bmp, UINTN size,
                                 break;
 
                         case 16: {
-                                out->Red = ((in[1] >> 2) & 0x1f) << 3;
-                                out->Green = (((in[1] << 3) & 0x1f) + (in[0] >> 5)) << 3;
-                                out->Blue = ((in[0] & 0x1f)) << 3;
+                                UINT16 i = *(UINT16 *) in;
+
+                                out->Red = (i & 0x7c00) >> 7;
+                                out->Green = (i & 0x3e0) >> 2;
+                                out->Blue = (i & 0x1f) << 3;
                                 in += 1;
                                 break;
                         }
