@@ -179,16 +179,20 @@ EFI_STATUS bmp_to_blt(UINT8 *bmp, UINTN size,
                 UINT32 map_count;
                 UINTN map_size;
 
-                switch (dib->depth) {
-                case 1:
-                case 4:
-                case 8:
-                        map_count = 1 << dib->depth;
-                        break;
+                if (dib->colors_used)
+                        map_count = dib->colors_used;
+                else {
+                        switch (dib->depth) {
+                        case 1:
+                        case 4:
+                        case 8:
+                                map_count = 1 << dib->depth;
+                                break;
 
-                default:
-                        map_count = 0;
-                        break;
+                        default:
+                                map_count = 0;
+                                break;
+                        }
                 }
 
                 map_size = file->offset - (sizeof(struct bmp_file) + dib->size);
