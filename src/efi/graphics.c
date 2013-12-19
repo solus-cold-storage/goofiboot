@@ -114,17 +114,12 @@ struct bmp_map {
         UINT8 reserved;
 } __attribute__((packed));
 
-EFI_STATUS bmp_to_blt(UINT8 *bmp, UINTN size,
-                      VOID **blt, UINTN *blt_size,
-                      UINTN *blt_x, UINTN *blt_y) {
+EFI_STATUS bmp_parse_header(UINT8 *bmp, UINTN size, struct bmp_dib **ret_dib,
+                            struct bmp_map **ret_map, UINT8 **pixmap) {
         struct bmp_file *file;
         struct bmp_dib *dib;
         struct bmp_map *map;
         UINTN row_size;
-        EFI_GRAPHICS_OUTPUT_BLT_PIXEL *buf;
-        UINT64 buf_size;
-        UINT8 *in;
-        UINTN y;
 
         if (size < sizeof(struct bmp_file) + sizeof(struct bmp_dib))
                 return EFI_INVALID_PARAMETER;
@@ -200,14 +195,21 @@ EFI_STATUS bmp_to_blt(UINT8 *bmp, UINTN size,
                         return EFI_INVALID_PARAMETER;
         }
 
-        /* EFI buffer */
-        buf_size = dib->x * dib->y * sizeof(EFI_GRAPHICS_OUTPUT_BLT_PIXEL);
-        buf = AllocatePool(buf_size);
-        if (!buf)
-                return EFI_OUT_OF_RESOURCES;
+        *ret_map = map;
+        *ret_dib = dib;
+        *pixmap = bmp + file->offset;
+
+        return EFI_SUCCESS;
+}
+
+EFI_STATUS bmp_to_blt(EFI_GRAPHICS_OUTPUT_BLT_PIXEL *buf,
+                      struct bmp_dib *dib, struct bmp_map *map,
+                      UINT8 *pixmap) {
+        UINT8 *in;
+        UINTN y;
 
         /* transform and copy pixels */
-        in = bmp + file->offset;
+        in = pixmap;
         for (y = 0; y < dib->y; y++) {
                 EFI_GRAPHICS_OUTPUT_BLT_PIXEL *out;
                 UINTN row_size;
@@ -282,14 +284,10 @@ EFI_STATUS bmp_to_blt(UINT8 *bmp, UINTN size,
                 }
 
                 /* add row padding; new lines always start at 32 bit boundary */
-                row_size = in - (bmp + file->offset);
+                row_size = in - pixmap;
                 in += ((row_size + 3) & ~3) - row_size;
         }
 
-        *blt = buf;
-        *blt_size = buf_size;
-        *blt_x = dib->x;
-        *blt_y = dib->y;
         return EFI_SUCCESS;
 }
 
@@ -298,10 +296,11 @@ EFI_STATUS graphics_splash(EFI_FILE *root_dir, CHAR16 *path) {
         EFI_GRAPHICS_OUTPUT_PROTOCOL *GraphicsOutput = NULL;
         UINT8 *content;
         INTN len;
+        struct bmp_dib *dib;
+        struct bmp_map *map;
+        UINT8 *pixmap;
+        UINT64 blt_size;
         VOID *blt = NULL;
-        UINTN size;
-        UINTN x;
-        UINTN y;
         UINTN x_pos = 0;
         UINTN y_pos = 0;
         EFI_STATUS err;
@@ -314,14 +313,24 @@ EFI_STATUS graphics_splash(EFI_FILE *root_dir, CHAR16 *path) {
         if (len < 0)
                 return EFI_LOAD_ERROR;
 
-        err = bmp_to_blt(content, len, &blt, &size, &x, &y);
+        err = bmp_parse_header(content, len, &dib, &map, &pixmap);
         if (EFI_ERROR(err))
                 goto err;
 
-        if(x < GraphicsOutput->Mode->Info->HorizontalResolution)
-                x_pos = (GraphicsOutput->Mode->Info->HorizontalResolution - x) / 2;
-        if(y < GraphicsOutput->Mode->Info->VerticalResolution)
-                y_pos = (GraphicsOutput->Mode->Info->VerticalResolution - y) / 2;
+        if(dib->x < GraphicsOutput->Mode->Info->HorizontalResolution)
+                x_pos = (GraphicsOutput->Mode->Info->HorizontalResolution - dib->x) / 2;
+        if(dib->y < GraphicsOutput->Mode->Info->VerticalResolution)
+                y_pos = (GraphicsOutput->Mode->Info->VerticalResolution - dib->y) / 2;
+
+        /* EFI buffer */
+        blt_size = dib->x * dib->y * sizeof(EFI_GRAPHICS_OUTPUT_BLT_PIXEL);
+        blt = AllocatePool(blt_size);
+        if (!blt)
+                return EFI_OUT_OF_RESOURCES;
+
+        err = bmp_to_blt(blt, dib, map, pixmap);
+        if (EFI_ERROR(err))
+                goto err;
 
         err = graphics_mode(TRUE);
         if (EFI_ERROR(err))
@@ -329,7 +338,7 @@ EFI_STATUS graphics_splash(EFI_FILE *root_dir, CHAR16 *path) {
 
         err = uefi_call_wrapper(GraphicsOutput->Blt, 10, GraphicsOutput,
                                 blt, EfiBltBufferToVideo, 0, 0, x_pos, y_pos,
-                                x, y, 0);
+                                dib->x, dib->y, 0);
 err:
         FreePool(blt);
         FreePool(content);
