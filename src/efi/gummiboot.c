@@ -375,6 +375,9 @@ static VOID print_status(Config *config, EFI_FILE *root_dir, CHAR16 *loaded_imag
         UINTN size;
         EFI_STATUS err;
 
+        uefi_call_wrapper(ST->ConOut->SetAttribute, 2, ST->ConOut, EFI_LIGHTGRAY|EFI_BACKGROUND_BLACK);
+        uefi_call_wrapper(ST->ConOut->ClearScreen, 1, ST->ConOut);
+
         err = EFI_NOT_FOUND;
         if (config->splash)
                 err = graphics_splash(root_dir, config->splash);
@@ -383,10 +386,8 @@ static VOID print_status(Config *config, EFI_FILE *root_dir, CHAR16 *loaded_imag
         if (!EFI_ERROR(err)) {
                 console_key_read(&key, TRUE);
                 graphics_mode(FALSE);
+                uefi_call_wrapper(ST->ConOut->EnableCursor, 2, ST->ConOut, FALSE);
         }
-
-        uefi_call_wrapper(ST->ConOut->SetAttribute, 2, ST->ConOut, EFI_LIGHTGRAY|EFI_BACKGROUND_BLACK);
-        uefi_call_wrapper(ST->ConOut->ClearScreen, 1, ST->ConOut);
 
         Print(L"gummiboot version:      " VERSION "\n");
         Print(L"loaded image:           %s\n", loaded_image_path);
