@@ -202,6 +202,29 @@ EFI_STATUS bmp_parse_header(UINT8 *bmp, UINTN size, struct bmp_dib **ret_dib,
         return EFI_SUCCESS;
 }
 
+static void pixel_blend(UINT32 *dst, const UINT32 source) {
+        UINT32 alpha, src, src_rb, src_g, dst_rb, dst_g, rb, g;
+
+        /* add 1 to make alpha = 255 be the same as no alpha channel */
+        alpha = (source & 0xff) + 1;
+
+        /* convert src from RGBA to XRGB */
+        src = source >> 8;
+
+        /* decompose into RB and G components */
+        src_rb = (src & 0xff00ff);
+        src_g  = (src & 0x00ff00);
+
+        dst_rb = (*dst & 0xff00ff);
+        dst_g  = (*dst & 0x00ff00);
+
+        /* blend */
+        rb = ((((src_rb - dst_rb) * alpha) >> 8) + dst_rb) & 0xff00ff;
+        g  = ((((src_g  -  dst_g) * alpha) >> 8) +  dst_g) & 0x00ff00;
+
+        *dst = (rb | g);
+}
+
 EFI_STATUS bmp_to_blt(EFI_GRAPHICS_OUTPUT_BLT_PIXEL *buf,
                       struct bmp_dib *dib, struct bmp_map *map,
                       UINT8 *pixmap) {
@@ -274,12 +297,14 @@ EFI_STATUS bmp_to_blt(EFI_GRAPHICS_OUTPUT_BLT_PIXEL *buf,
                                 in += 2;
                                 break;
 
-                        case 32:
-                                out->Red = in[3];
-                                out->Green = in[2];
-                                out->Blue = in[1];
+                        case 32: {
+                                UINT32 i = *(UINT32 *) in;
+
+                                pixel_blend((UINT32 *)out, i);
+
                                 in += 3;
                                 break;
+                        }
                         }
                 }
 
@@ -327,6 +352,12 @@ EFI_STATUS graphics_splash(EFI_FILE *root_dir, CHAR16 *path) {
         blt = AllocatePool(blt_size);
         if (!blt)
                 return EFI_OUT_OF_RESOURCES;
+
+        err = uefi_call_wrapper(GraphicsOutput->Blt, 10, GraphicsOutput,
+                                blt, EfiBltVideoToBltBuffer, x_pos, y_pos, 0, 0,
+                                dib->x, dib->y, 0);
+        if (EFI_ERROR(err))
+                goto err;
 
         err = bmp_to_blt(blt, dib, map, pixmap);
         if (EFI_ERROR(err))
