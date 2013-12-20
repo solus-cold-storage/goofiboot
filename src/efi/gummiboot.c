@@ -374,19 +374,43 @@ static VOID print_status(Config *config, EFI_FILE *root_dir, CHAR16 *loaded_imag
         CHAR8 *b;
         UINTN size;
         EFI_STATUS err;
+        UINTN color = 0;
+        const EFI_GRAPHICS_OUTPUT_BLT_PIXEL *pixel = NULL;
 
         uefi_call_wrapper(ST->ConOut->SetAttribute, 2, ST->ConOut, EFI_LIGHTGRAY|EFI_BACKGROUND_BLACK);
         uefi_call_wrapper(ST->ConOut->ClearScreen, 1, ST->ConOut);
 
-        err = EFI_NOT_FOUND;
-        if (config->splash)
-                err = graphics_splash(root_dir, config->splash);
-        if (EFI_ERROR(err))
-                err = graphics_splash(root_dir, L"\\EFI\\gummiboot\\splash.bmp");
-        if (!EFI_ERROR(err)) {
-                console_key_read(&key, TRUE);
+        for (;;) {
+
+                err = EFI_NOT_FOUND;
+                if (config->splash)
+                        err = graphics_splash(root_dir, config->splash, pixel);
+                if (EFI_ERROR(err))
+                        err = graphics_splash(root_dir, L"\\EFI\\gummiboot\\splash.bmp", pixel);
+                if (!EFI_ERROR(err)) {
+                        static const EFI_GRAPHICS_OUTPUT_BLT_PIXEL colors[] = {
+                                { .Red = 255, .Green = 255, .Blue = 255 },
+                                { .Red = 255, .Green =   0, .Blue =   0 },
+                                { .Red =   0, .Green = 255, .Blue =   0 },
+                                { .Red =   0, .Green =   0, .Blue = 255 },
+                                { .Red =   0, .Green =   0, .Blue =   0 },
+                        };
+
+                        console_key_read(&key, TRUE);
+
+                        /* 'b' rotates through background colors */
+                        if (key == KEYPRESS(0, 0, 'b')) {
+                                pixel = &colors[color++];
+                                if (color == ELEMENTSOF(colors))
+                                        color = 0;
+
+                                continue;
+                        }
+                }
+
                 graphics_mode(FALSE);
                 uefi_call_wrapper(ST->ConOut->EnableCursor, 2, ST->ConOut, FALSE);
+                break;
         }
 
         Print(L"gummiboot version:      " VERSION "\n");
@@ -455,7 +479,7 @@ static VOID print_status(Config *config, EFI_FILE *root_dir, CHAR16 *loaded_imag
                 entry = config->entries[i];
 
                 if (entry->splash) {
-                        err = graphics_splash(root_dir, entry->splash);
+                        err = graphics_splash(root_dir, entry->splash, NULL);
                         if (!EFI_ERROR(err)) {
                                 console_key_read(&key, TRUE);
                                 graphics_mode(FALSE);
@@ -1799,16 +1823,16 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table) {
                                 if (entry->splash[0] == '\0')
                                         err = EFI_SUCCESS;
                                 else
-                                        err = graphics_splash(root_dir, entry->splash);
+                                        err = graphics_splash(root_dir, entry->splash, NULL);
                         }
 
                         /* splash from config file */
                         if (EFI_ERROR(err) && config.splash)
-                                err = graphics_splash(root_dir, config.splash);
+                                err = graphics_splash(root_dir, config.splash, NULL);
 
                         /* default splash */
                         if (EFI_ERROR(err))
-                                graphics_splash(root_dir, L"\\EFI\\gummiboot\\splash.bmp");
+                                graphics_splash(root_dir, L"\\EFI\\gummiboot\\splash.bmp", NULL);
                 }
 
                 /* export the selected boot entry to the system */

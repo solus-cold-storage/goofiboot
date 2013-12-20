@@ -21,6 +21,8 @@
 #include <efi.h>
 #include <efilib.h>
 
+#define ELEMENTSOF(x) (sizeof(x)/sizeof((x)[0]))
+
 UINT64 ticks_read(void);
 UINT64 ticks_freq(void);
 UINT64 time_usec(void);
