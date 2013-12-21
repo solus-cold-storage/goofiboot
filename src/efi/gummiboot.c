@@ -78,6 +78,7 @@ typedef struct {
         INTN timeout_sec_efivar;
         CHAR16 *entry_default_pattern;
         CHAR16 *splash;
+        EFI_GRAPHICS_OUTPUT_BLT_PIXEL *background;
         CHAR16 *entry_oneshot;
         CHAR16 *options_edit;
         CHAR16 *entries_auto;
@@ -375,7 +376,7 @@ static VOID print_status(Config *config, EFI_FILE *root_dir, CHAR16 *loaded_imag
         UINTN size;
         EFI_STATUS err;
         UINTN color = 0;
-        const EFI_GRAPHICS_OUTPUT_BLT_PIXEL *pixel = NULL;
+        const EFI_GRAPHICS_OUTPUT_BLT_PIXEL *pixel = config->background;
 
         uefi_call_wrapper(ST->ConOut->SetAttribute, 2, ST->ConOut, EFI_LIGHTGRAY|EFI_BACKGROUND_BLACK);
         uefi_call_wrapper(ST->ConOut->ClearScreen, 1, ST->ConOut);
@@ -442,6 +443,11 @@ static VOID print_status(Config *config, EFI_FILE *root_dir, CHAR16 *loaded_imag
                 Print(L"default pattern:        '%s'\n", config->entry_default_pattern);
         if (config->splash)
                 Print(L"splash                  '%s'\n", config->splash);
+        if (config->background)
+                Print(L"background              '#%02x%02x%02x'\n",
+                      config->background->Red,
+                      config->background->Green,
+                      config->background->Blue);
         Print(L"\n");
 
         Print(L"config entry count:     %d\n", config->entry_count);
@@ -479,7 +485,7 @@ static VOID print_status(Config *config, EFI_FILE *root_dir, CHAR16 *loaded_imag
                 entry = config->entries[i];
 
                 if (entry->splash) {
-                        err = graphics_splash(root_dir, entry->splash, NULL);
+                        err = graphics_splash(root_dir, entry->splash, config->background);
                         if (!EFI_ERROR(err)) {
                                 console_key_read(&key, TRUE);
                                 graphics_mode(FALSE);
@@ -1055,6 +1061,34 @@ static VOID config_defaults_load_from_file(Config *config, CHAR8 *content) {
 
                 if (strcmpa((CHAR8 *)"splash", key) == 0) {
                         config->splash = stra_to_path(value);
+                        continue;
+                }
+
+                if (strcmpa((CHAR8 *)"background", key) == 0) {
+                        CHAR16 c[3];
+
+                        /* accept #RRGGBB hex notation */
+                        if (value[0] != '#')
+                                continue;
+                        if (value[7] != '\0')
+                                continue;
+
+                        config->background = AllocateZeroPool(sizeof(EFI_GRAPHICS_OUTPUT_BLT_PIXEL));
+                        if (!config->background)
+                                continue;
+
+                        c[0] = value[1];
+                        c[1] = value[2];
+                        c[2] = '\0';
+                        config->background->Red = xtoi(c);
+
+                        c[0] = value[3];
+                        c[1] = value[4];
+                        config->background->Green = xtoi(c);
+
+                        c[0] = value[5];
+                        c[1] = value[6];
+                        config->background->Blue = xtoi(c);
                         continue;
                 }
         }
@@ -1666,6 +1700,8 @@ static VOID config_free(Config *config) {
         FreePool(config->options_edit);
         FreePool(config->entry_oneshot);
         FreePool(config->entries_auto);
+        FreePool(config->splash);
+        FreePool(config->background);
 }
 
 EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table) {
@@ -1823,16 +1859,16 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table) {
                                 if (entry->splash[0] == '\0')
                                         err = EFI_SUCCESS;
                                 else
-                                        err = graphics_splash(root_dir, entry->splash, NULL);
+                                        err = graphics_splash(root_dir, entry->splash, config.background);
                         }
 
                         /* splash from config file */
                         if (EFI_ERROR(err) && config.splash)
-                                err = graphics_splash(root_dir, config.splash, NULL);
+                                err = graphics_splash(root_dir, config.splash, config.background);
 
                         /* default splash */
                         if (EFI_ERROR(err))
-                                graphics_splash(root_dir, L"\\EFI\\gummiboot\\splash.bmp", NULL);
+                                graphics_splash(root_dir, L"\\EFI\\gummiboot\\splash.bmp", config.background);
                 }
 
                 /* export the selected boot entry to the system */
