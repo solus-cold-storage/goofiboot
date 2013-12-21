@@ -205,8 +205,7 @@ EFI_STATUS bmp_parse_header(UINT8 *bmp, UINTN size, struct bmp_dib **ret_dib,
 static void pixel_blend(UINT32 *dst, const UINT32 source) {
         UINT32 alpha, src, src_rb, src_g, dst_rb, dst_g, rb, g;
 
-        /* add 1 to make alpha = 255 be the same as no alpha channel */
-        alpha = (source & 0xff) + 1;
+        alpha = (source & 0xff);
 
         /* convert src from RGBA to XRGB */
         src = source >> 8;
