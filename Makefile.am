@@ -79,9 +79,15 @@ efi_sources = \
 	src/efi/graphics.c \
 	src/efi/gummiboot.c
 
+efi_headers = \
+	src/efi/util.h \
+	src/efi/console.h \
+	src/efi/graphics.h
+
 efi_cppflags = \
 	$(EFI_CPPFLAGS) \
 	-I$(top_builddir) -include config.h \
+	-I$(top_srcdir)/src/efi \
 	-I$(EFI_INC_DIR)/efi \
 	-I$(EFI_INC_DIR)/efi/$(ARCH) \
 	-DMACHINE_TYPE_NAME=\"$(MACHINE_TYPE_NAME)\"
@@ -125,7 +131,7 @@ efi_solib = $(top_builddir)/src/efi/gummiboot.so
 # ------------------------------------------------------------------------------
 gummibootlib_DATA = $(efi_loadername)
 CLEANFILES += $(efi_objects) $(efi_solib) $(efi_loadername)
-EXTRA_DIST += $(efi_sources)
+EXTRA_DIST += $(efi_sources) $(efi_headers)
 
 $(top_builddir)/src/efi/%.o: $(top_srcdir)/src/efi/%.c
 	@$(MKDIR_P) $(top_builddir)/src/efi/
