@@ -381,32 +381,32 @@ static VOID print_status(Config *config, EFI_FILE *root_dir, CHAR16 *loaded_imag
         uefi_call_wrapper(ST->ConOut->SetAttribute, 2, ST->ConOut, EFI_LIGHTGRAY|EFI_BACKGROUND_BLACK);
         uefi_call_wrapper(ST->ConOut->ClearScreen, 1, ST->ConOut);
 
+        /* show splash and wait for key */
         for (;;) {
+                static const EFI_GRAPHICS_OUTPUT_BLT_PIXEL colors[] = {
+                        { .Red = 255, .Green = 255, .Blue = 255 },
+                        { .Red = 255, .Green =   0, .Blue =   0 },
+                        { .Red =   0, .Green = 255, .Blue =   0 },
+                        { .Red =   0, .Green =   0, .Blue = 255 },
+                        { .Red =   0, .Green =   0, .Blue =   0 },
+                };
 
                 err = EFI_NOT_FOUND;
                 if (config->splash)
                         err = graphics_splash(root_dir, config->splash, pixel);
                 if (EFI_ERROR(err))
                         err = graphics_splash(root_dir, L"\\EFI\\gummiboot\\splash.bmp", pixel);
-                if (!EFI_ERROR(err)) {
-                        static const EFI_GRAPHICS_OUTPUT_BLT_PIXEL colors[] = {
-                                { .Red = 255, .Green = 255, .Blue = 255 },
-                                { .Red = 255, .Green =   0, .Blue =   0 },
-                                { .Red =   0, .Green = 255, .Blue =   0 },
-                                { .Red =   0, .Green =   0, .Blue = 255 },
-                                { .Red =   0, .Green =   0, .Blue =   0 },
-                        };
+                if (EFI_ERROR(err))
+                        break;
 
-                        console_key_read(&key, TRUE);
+                /* 'b' rotates through background colors */
+                console_key_read(&key, TRUE);
+                if (key == KEYPRESS(0, 0, 'b')) {
+                        pixel = &colors[color++];
+                        if (color == ELEMENTSOF(colors))
+                                color = 0;
 
-                        /* 'b' rotates through background colors */
-                        if (key == KEYPRESS(0, 0, 'b')) {
-                                pixel = &colors[color++];
-                                if (color == ELEMENTSOF(colors))
-                                        color = 0;
-
-                                continue;
-                        }
+                        continue;
                 }
 
                 graphics_mode(FALSE);
