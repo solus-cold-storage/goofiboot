@@ -70,18 +70,22 @@ EFI_STATUS graphics_mode(BOOLEAN on) {
         if (EFI_ERROR(err))
                 return err;
 
+        /* check current mode */
         err = uefi_call_wrapper(ConsoleControl->GetMode, 4, ConsoleControl, &current, &uga_exists, &stdin_locked);
-        if (err == EFI_SUCCESS) {
-                if (on)
-                        new = EfiConsoleControlScreenGraphics;
-                else
-                        new = EfiConsoleControlScreenText;
+        if (EFI_ERROR(err))
+                return err;
 
-                if (new == current)
-                        return EFI_SUCCESS;
-        }
+        /* do not touch the mode */
+        new  = on ? EfiConsoleControlScreenGraphics : EfiConsoleControlScreenText;
+        if (new == current)
+                return EFI_SUCCESS;
 
-        return uefi_call_wrapper(ConsoleControl->SetMode, 2, ConsoleControl, new);
+        err = uefi_call_wrapper(ConsoleControl->SetMode, 2, ConsoleControl, new);
+
+        /* some firmware enables the cursor when switching modes */
+        uefi_call_wrapper(ST->ConOut->EnableCursor, 2, ST->ConOut, FALSE);
+
+        return err;
 }
 
 struct bmp_file {
