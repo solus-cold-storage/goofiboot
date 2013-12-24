@@ -222,8 +222,8 @@ static void pixel_blend(UINT32 *dst, const UINT32 source) {
         dst_g  = (*dst & 0x00ff00);
 
         /* blend */
-        rb = ((((src_rb - dst_rb) * alpha) >> 8) + dst_rb) & 0xff00ff;
-        g  = ((((src_g  -  dst_g) * alpha) >> 8) +  dst_g) & 0x00ff00;
+        rb = ((((src_rb - dst_rb) * alpha + 0x800080) >> 8) + dst_rb) & 0xff00ff;
+        g  = ((((src_g  -  dst_g) * alpha + 0x008000) >> 8) +  dst_g) & 0x00ff00;
 
         *dst = (rb | g);
 }
