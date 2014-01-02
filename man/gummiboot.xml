@@ -62,7 +62,7 @@
         <refsect1>
                 <title>Description</title>
 
-                <para><command>gummibot</command> checks, updates,
+                <para><command>gummiboot</command> checks, updates,
                 installs or removes the boot loader from the current
                 system.</para>
 
