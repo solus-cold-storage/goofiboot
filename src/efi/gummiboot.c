@@ -410,6 +410,7 @@ static VOID print_status(Config *config, EFI_FILE *root_dir, CHAR16 *loaded_imag
                 }
 
                 graphics_mode(FALSE);
+                uefi_call_wrapper(ST->ConOut->ClearScreen, 1, ST->ConOut);
                 break;
         }
 
