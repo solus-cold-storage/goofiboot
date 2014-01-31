@@ -353,12 +353,11 @@ EFI_STATUS graphics_splash(EFI_FILE *root_dir, CHAR16 *path,
         if(dib->y < GraphicsOutput->Mode->Info->VerticalResolution)
                 y_pos = (GraphicsOutput->Mode->Info->VerticalResolution - dib->y) / 2;
 
-        if (background)
-                uefi_call_wrapper(GraphicsOutput->Blt, 10, GraphicsOutput,
-                                  (EFI_GRAPHICS_OUTPUT_BLT_PIXEL *)background,
-                                  EfiBltVideoFill, 0, 0, 0, 0,
-                                  GraphicsOutput->Mode->Info->HorizontalResolution,
-                                  GraphicsOutput->Mode->Info->VerticalResolution, 0);
+        uefi_call_wrapper(GraphicsOutput->Blt, 10, GraphicsOutput,
+                          (EFI_GRAPHICS_OUTPUT_BLT_PIXEL *)background,
+                          EfiBltVideoFill, 0, 0, 0, 0,
+                          GraphicsOutput->Mode->Info->HorizontalResolution,
+                          GraphicsOutput->Mode->Info->VerticalResolution, 0);
 
         /* EFI buffer */
         blt_size = dib->x * dib->y * sizeof(EFI_GRAPHICS_OUTPUT_BLT_PIXEL);

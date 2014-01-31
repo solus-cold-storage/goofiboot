@@ -384,11 +384,12 @@ static VOID print_status(Config *config, EFI_FILE *root_dir, CHAR16 *loaded_imag
         /* show splash and wait for key */
         for (;;) {
                 static const EFI_GRAPHICS_OUTPUT_BLT_PIXEL colors[] = {
-                        { .Red = 255, .Green = 255, .Blue = 255 },
-                        { .Red = 255, .Green =   0, .Blue =   0 },
-                        { .Red =   0, .Green = 255, .Blue =   0 },
-                        { .Red =   0, .Green =   0, .Blue = 255 },
-                        { .Red =   0, .Green =   0, .Blue =   0 },
+                        { .Red = 0xff, .Green = 0xff, .Blue = 0xff },
+                        { .Red = 0xc0, .Green = 0xc0, .Blue = 0xc0 },
+                        { .Red = 0xff, .Green =    0, .Blue =    0 },
+                        { .Red =    0, .Green = 0xff, .Blue =    0 },
+                        { .Red =    0, .Green =    0, .Blue = 0xff },
+                        { .Red =    0, .Green =    0, .Blue =    0 },
                 };
 
                 err = EFI_NOT_FOUND;
@@ -1054,12 +1055,14 @@ static VOID config_defaults_load_from_file(Config *config, CHAR8 *content) {
                 }
 
                 if (strcmpa((CHAR8 *)"default", key) == 0) {
+                        FreePool(config->entry_default_pattern);
                         config->entry_default_pattern = stra_to_str(value);
                         StrLwr(config->entry_default_pattern);
                         continue;
                 }
 
                 if (strcmpa((CHAR8 *)"splash", key) == 0) {
+                        FreePool(config->splash);
                         config->splash = stra_to_path(value);
                         continue;
                 }
@@ -1073,6 +1076,7 @@ static VOID config_defaults_load_from_file(Config *config, CHAR8 *content) {
                         if (value[7] != '\0')
                                 continue;
 
+                        FreePool(config->background);
                         config->background = AllocateZeroPool(sizeof(EFI_GRAPHICS_OUTPUT_BLT_PIXEL));
                         if (!config->background)
                                 continue;
@@ -1780,6 +1784,15 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table) {
         /* scan "\loader\entries\*.conf" files */
         ZeroMem(&config, sizeof(Config));
         config_load(&config, loaded_image->DeviceHandle, root_dir, loaded_image_path);
+
+        if (!config.background) {
+                config.background = AllocateZeroPool(sizeof(EFI_GRAPHICS_OUTPUT_BLT_PIXEL));
+                if (StriCmp(L"Apple", ST->FirmwareVendor) == 0) {
+                        config.background->Red = 0xc0;
+                        config.background->Green = 0xc0;
+                        config.background->Blue = 0xc0;
+                }
+        }
 
         /* if we find some well-known loaders, add them to the end of the list */
         config_entry_add_loader_auto(&config, loaded_image->DeviceHandle, root_dir, loaded_image_path,
