@@ -144,7 +144,7 @@ $(efi_solib): $(efi_objects)
 
 $(efi_loadername): $(efi_solib)
 	$(AM_V_GEN) objcopy -j .text -j .sdata -j .data -j .dynamic \
-	  -j .dynsym -j .rel -j .rela -j .reloc -j .eh_frame \
+	  -j .dynsym -j .rel -j .rela -j .reloc \
 	  --target=efi-app-$(ARCH) $< $@
 
 # ------------------------------------------------------------------------------
