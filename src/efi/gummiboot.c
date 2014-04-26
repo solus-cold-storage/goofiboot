@@ -416,7 +416,7 @@ static VOID print_status(Config *config, EFI_FILE *root_dir, CHAR16 *loaded_imag
         }
 
         Print(L"gummiboot version:      " VERSION "\n");
-        Print(L"gummiboot arch:         " MACHINE_TYPE_NAME "\n");
+        Print(L"gummiboot architecture: " MACHINE_TYPE_NAME "\n");
         Print(L"loaded image:           %s\n", loaded_image_path);
         Print(L"UEFI specification:     %d.%02d\n", ST->Hdr.Revision >> 16, ST->Hdr.Revision & 0xffff);
         Print(L"firmware vendor:        %s\n", ST->FirmwareVendor);
@@ -1151,20 +1151,11 @@ static VOID config_entry_add_from_file(Config *config, EFI_HANDLE *device, CHAR1
                 }
 
                 if (strcmpa((CHAR8 *)"architecture", key) == 0) {
-                        CHAR16 *gummiboot_arch = NULL;
-                        CHAR16 *loader_arch = NULL;
-
-                        gummiboot_arch = stra_to_str((CHAR8 *)MACHINE_TYPE_NAME);
-                        loader_arch = stra_to_str(value);
-
                         /* do not add an entry for an EFI image of architecture not matching with that of the gummiboot image */
-                        if (StriCmp(gummiboot_arch, loader_arch) != 0) {
+                        if (strcmpa((CHAR8 *)MACHINE_TYPE_NAME, value) != 0) {
                                 entry->type = LOADER_UNDEFINED;
                                 break;
                         }
-
-                        FreePool(gummiboot_arch);
-                        FreePool(loader_arch);
                         continue;
                 }
 
