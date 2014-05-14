@@ -34,6 +34,7 @@ EXTRA_DIST = autogen.sh README LICENSE
 CLEANFILES =
 
 # ------------------------------------------------------------------------------
+if HAVE_BLKID
 bin_PROGRAMS = gummiboot
 
 gummiboot_SOURCES = \
@@ -52,6 +53,7 @@ gummiboot_CFLAGS = \
 
 gummiboot_LDADD = \
 	$(BLKID_LIBS)
+endif
 
 if ENABLE_MANPAGES
 %.8: %.xml
