@@ -102,7 +102,7 @@ EFI_STATUS efivar_get(CHAR16 *name, CHAR16 **value) {
 
         val = StrDuplicate((CHAR16 *)buf);
         if (!val) {
-                FreePool(val);
+                FreePool(buf);
                 return EFI_OUT_OF_RESOURCES;
         }
 
