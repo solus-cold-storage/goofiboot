@@ -373,6 +373,8 @@ static VOID print_status(Config *config, EFI_FILE *root_dir, CHAR16 *loaded_imag
         UINTN i;
         CHAR16 *s;
         CHAR8 *b;
+        UINTN x;
+        UINTN y;
         UINTN size;
         EFI_STATUS err;
         UINTN color = 0;
@@ -421,6 +423,10 @@ static VOID print_status(Config *config, EFI_FILE *root_dir, CHAR16 *loaded_imag
         Print(L"UEFI specification:     %d.%02d\n", ST->Hdr.Revision >> 16, ST->Hdr.Revision & 0xffff);
         Print(L"firmware vendor:        %s\n", ST->FirmwareVendor);
         Print(L"firmware version:       %d.%02d\n", ST->FirmwareRevision >> 16, ST->FirmwareRevision & 0xffff);
+
+        if (uefi_call_wrapper(ST->ConOut->QueryMode, 4, ST->ConOut, ST->ConOut->Mode->Mode, &x, &y) == EFI_SUCCESS)
+                Print(L"console size:           %d x %d\n", x, y);
+
         if (efivar_get_raw(&global_guid, L"SecureBoot", &b, &size) == EFI_SUCCESS) {
                 Print(L"SecureBoot:             %s\n", *b > 0 ? L"enabled" : L"disabled");
                 FreePool(b);
@@ -560,6 +566,9 @@ static BOOLEAN menu_run(Config *config, ConfigEntry **chosen_entry, EFI_FILE *ro
         uefi_call_wrapper(ST->ConIn->Reset, 2, ST->ConIn, FALSE);
         uefi_call_wrapper(ST->ConOut->EnableCursor, 2, ST->ConOut, FALSE);
         uefi_call_wrapper(ST->ConOut->SetAttribute, 2, ST->ConOut, EFI_LIGHTGRAY|EFI_BACKGROUND_BLACK);
+
+        /* draw a single character to make ClearScreen work on some firmware */
+        uefi_call_wrapper(ST->ConOut->OutputString, 2, ST->ConOut, L" ");
         uefi_call_wrapper(ST->ConOut->ClearScreen, 1, ST->ConOut);
 
         err = uefi_call_wrapper(ST->ConOut->QueryMode, 4, ST->ConOut, ST->ConOut->Mode->Mode, &x_max, &y_max);
