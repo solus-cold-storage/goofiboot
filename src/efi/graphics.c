@@ -340,7 +340,7 @@ EFI_STATUS graphics_splash(EFI_FILE *root_dir, CHAR16 *path,
         if (EFI_ERROR(err))
                 return err;
 
-        len = file_read(root_dir, path, &content);
+        len = file_read(root_dir, path, 0, 0, &content);
         if (len < 0)
                 return EFI_LOAD_ERROR;
 

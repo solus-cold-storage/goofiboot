@@ -40,5 +40,5 @@ CHAR8 *strchra(CHAR8 *s, CHAR8 c);
 CHAR16 *stra_to_path(CHAR8 *stra);
 CHAR16 *stra_to_str(CHAR8 *stra);
 
-INTN file_read(EFI_FILE_HANDLE dir, CHAR16 *name, CHAR8 **content);
+INTN file_read(EFI_FILE_HANDLE dir, CHAR16 *name, UINTN off, UINTN size, CHAR8 **content);
 #endif

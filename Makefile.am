@@ -79,12 +79,14 @@ efi_sources = \
 	src/efi/util.c \
 	src/efi/console.c \
 	src/efi/graphics.c \
+	src/efi/pefile.c \
 	src/efi/gummiboot.c
 
 efi_headers = \
 	src/efi/util.h \
 	src/efi/console.h \
-	src/efi/graphics.h
+	src/efi/graphics.h \
+	src/efi/pefile.h
 
 efi_cppflags = \
 	$(EFI_CPPFLAGS) \

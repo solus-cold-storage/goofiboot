@@ -18,6 +18,10 @@ cp test/splash.bmp mnt/EFI/gummiboot/
 
 [ -e /boot/shellx64.efi ] && cp /boot/shellx64.efi mnt/
 
+mkdir mnt/EFI/Linux
+objcopy --add-section .osrel=/etc/os-release --change-section-vma .osrel=0x20000 \
+  gummibootx64.efi mnt/EFI/Linux/Test-Linux.efi
+
 # install entries
 mkdir -p mnt/loader/entries
 echo -e "timeout 3\nsplash /EFI/gummiboot/splash.bmp\n" > mnt/loader/loader.conf
