@@ -208,7 +208,7 @@ EFI_STATUS bmp_parse_header(UINT8 *bmp, UINTN size, struct bmp_dib **ret_dib,
         return EFI_SUCCESS;
 }
 
-static void pixel_blend(UINT32 *dst, const UINT32 source) {
+static VOID pixel_blend(UINT32 *dst, const UINT32 source) {
         UINT32 alpha, src, src_rb, src_g, dst_rb, dst_g, rb, g;
 
         alpha = (source & 0xff);

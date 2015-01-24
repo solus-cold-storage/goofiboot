@@ -11,8 +11,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * Lesser General Public License for more details.
  *
- * Copyright (C) 2012-2013 Kay Sievers <kay@vrfy.org>
- * Copyright (C) 2012 Harald Hoyer <harald@redhat.com>
+ * Copyright (C) 2015 Kay Sievers <kay@vrfy.org>
  */
 
 #include <efi.h>
@@ -154,7 +153,6 @@ EFI_STATUS pefile_locate_sections(EFI_FILE *dir, CHAR16 *path, CHAR8 **sections,
                         err = EFI_LOAD_ERROR;
                         goto out;
                 }
-
                 for (j = 0; sections[j]; j++) {
                         if (strcmpa(sections[j], sect.Name) != 0)
                                 continue;

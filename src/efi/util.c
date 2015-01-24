@@ -28,13 +28,13 @@
 static const EFI_GUID loader_guid = { 0x4a67b082, 0x0a4c, 0x41cf, {0xb6, 0xc7, 0x44, 0x0b, 0x29, 0xbb, 0x8c, 0x4f} };
 
 #ifdef __x86_64__
-UINT64 ticks_read(void) {
+UINT64 ticks_read(VOID) {
         UINT64 a, d;
         __asm__ volatile ("rdtsc" : "=a" (a), "=d" (d));
         return (d << 32) | a;
 }
 #else
-UINT64 ticks_read(void) {
+UINT64 ticks_read(VOID) {
         UINT64 val;
         __asm__ volatile ("rdtsc" : "=A" (val));
         return val;
@@ -42,7 +42,7 @@ UINT64 ticks_read(void) {
 #endif
 
 /* count TSC ticks during a millisecond delay */
-UINT64 ticks_freq(void) {
+UINT64 ticks_freq(VOID) {
         UINT64 ticks_start, ticks_end;
 
         ticks_start = ticks_read();
@@ -52,7 +52,7 @@ UINT64 ticks_freq(void) {
         return (ticks_end - ticks_start) * 1000;
 }
 
-UINT64 time_usec(void) {
+UINT64 time_usec(VOID) {
         UINT64 ticks;
         static UINT64 freq;
 

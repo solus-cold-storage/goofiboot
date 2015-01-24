@@ -32,6 +32,7 @@
 #include "console.h"
 #include "graphics.h"
 #include "pefile.h"
+#include "linux.h"
 
 #ifndef EFI_OS_INDICATIONS_BOOT_TO_FW_UI
 #define EFI_OS_INDICATIONS_BOOT_TO_FW_UI 0x0000000000000001ULL
@@ -64,7 +65,7 @@ typedef struct {
         CHAR16 *options;
         CHAR16 *splash;
         CHAR16 key;
-        EFI_STATUS (*call)(void);
+        EFI_STATUS (*call)(VOID);
         BOOLEAN no_autoselect;
         BOOLEAN non_unique;
 } ConfigEntry;
@@ -85,7 +86,7 @@ typedef struct {
         CHAR16 *entries_auto;
 } Config;
 
-static void cursor_left(UINTN *cursor, UINTN *first)
+static VOID cursor_left(UINTN *cursor, UINTN *first)
 {
         if ((*cursor) > 0)
                 (*cursor)--;
@@ -93,7 +94,7 @@ static void cursor_left(UINTN *cursor, UINTN *first)
                 (*first)--;
 }
 
-static void cursor_right(UINTN *cursor, UINTN *first, UINTN x_max, UINTN len)
+static VOID cursor_right(UINTN *cursor, UINTN *first, UINTN x_max, UINTN len)
 {
         if ((*cursor)+1 < x_max)
                 (*cursor)++;
@@ -1558,7 +1559,7 @@ static VOID config_title_generate(Config *config) {
         }
 }
 
-static BOOLEAN config_entry_add_call(Config *config, CHAR16 *title, EFI_STATUS (*call)(void)) {
+static BOOLEAN config_entry_add_call(Config *config, CHAR16 *title, EFI_STATUS (*call)(VOID)) {
         ConfigEntry *entry;
 
         entry = AllocateZeroPool(sizeof(ConfigEntry));
@@ -1766,7 +1767,7 @@ static EFI_STATUS image_start(EFI_HANDLE parent_image, const Config *config, con
         if (options) {
                 EFI_LOADED_IMAGE *loaded_image;
 
-                err = uefi_call_wrapper(BS->OpenProtocol, 6, image, &LoadedImageProtocol, (void **)&loaded_image,
+                err = uefi_call_wrapper(BS->OpenProtocol, 6, image, &LoadedImageProtocol, (VOID **)&loaded_image,
                                         parent_image, NULL, EFI_OPEN_PROTOCOL_GET_PROTOCOL);
                 if (EFI_ERROR(err)) {
                         Print(L"Error getting LoadedImageProtocol handle: %r", err);
@@ -1847,7 +1848,7 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table) {
         efivar_set(L"LoaderFirmwareType", s, FALSE);
         FreePool(s);
 
-        err = uefi_call_wrapper(BS->OpenProtocol, 6, image, &LoadedImageProtocol, (void **)&loaded_image,
+        err = uefi_call_wrapper(BS->OpenProtocol, 6, image, &LoadedImageProtocol, (VOID **)&loaded_image,
                                 image, NULL, EFI_OPEN_PROTOCOL_GET_PROTOCOL);
         if (EFI_ERROR(err)) {
                 Print(L"Error getting a LoadedImageProtocol handle: %r ", err);

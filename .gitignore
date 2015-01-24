@@ -9,8 +9,11 @@
 .dirstamp
 /gummiboot
 /gummiboot.so
-/gummibootia32.efi
 /gummibootx64.efi
+/gummibootia32.efi
+/stub.so
+/stubx64.efi
+/stubia32.efi
 /test-disk
 
 Makefile

@@ -19,8 +19,11 @@ cp test/splash.bmp mnt/EFI/gummiboot/
 [ -e /boot/shellx64.efi ] && cp /boot/shellx64.efi mnt/
 
 mkdir mnt/EFI/Linux
-objcopy --add-section .osrel=/etc/os-release --change-section-vma .osrel=0x20000 \
-  gummibootx64.efi mnt/EFI/Linux/Test-Linux.efi
+objcopy \
+  --add-section .osrel=/etc/os-release --change-section-vma .osrel=0x20000 \
+  --add-section .linux=/boot/$(cat /etc/machine-id)/$(uname -r)/linux --change-section-vma .linux=0x30000 \
+  --add-section .initrd=/boot/$(cat /etc/machine-id)/$(uname -r)/initrd --change-section-vma .initrd=0x3000000 \
+  stubx64.efi mnt/EFI/Linux/linux-test.efi
 
 # install entries
 mkdir -p mnt/loader/entries

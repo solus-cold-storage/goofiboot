@@ -74,20 +74,6 @@ CLEANFILES += man/gummiboot.8
 # EFI compilation -- this part of the build system uses custom make rules and
 # bypasses regular automake to provide absolute control on compiler and linker
 # flags.
-efi_loadername = gummiboot$(MACHINE_TYPE_NAME).efi
-efi_sources = \
-	src/efi/util.c \
-	src/efi/console.c \
-	src/efi/graphics.c \
-	src/efi/pefile.c \
-	src/efi/gummiboot.c
-
-efi_headers = \
-	src/efi/util.h \
-	src/efi/console.h \
-	src/efi/graphics.h \
-	src/efi/pefile.h
-
 efi_cppflags = \
 	$(EFI_CPPFLAGS) \
 	-I$(top_builddir) -include config.h \
@@ -128,25 +114,74 @@ efi_ldflags = \
 	-L $(EFI_LIB_DIR) \
 	$(EFI_LDS_DIR)/crt0-efi-$(ARCH).o
 
-efi_objects = $(addprefix $(top_builddir)/,$(efi_sources:.c=.o))
-efi_solib = $(top_builddir)/src/efi/gummiboot.so
-
 # ------------------------------------------------------------------------------
-gummibootlib_DATA = $(efi_loadername)
-CLEANFILES += $(efi_objects) $(efi_solib) $(efi_loadername)
-EXTRA_DIST += $(efi_sources) $(efi_headers)
+gummiboot_headers = \
+	src/efi/util.h \
+	src/efi/console.h \
+	src/efi/graphics.h \
+	src/efi/pefile.h
 
-$(top_builddir)/src/efi/%.o: $(top_srcdir)/src/efi/%.c $(addprefix $(top_srcdir)/,$(efi_headers))
+gummiboot_sources = \
+	src/efi/util.c \
+	src/efi/console.c \
+	src/efi/graphics.c \
+	src/efi/pefile.c \
+	src/efi/gummiboot.c
+
+gummiboot_objects = $(addprefix $(top_builddir)/,$(gummiboot_sources:.c=.o))
+gummiboot_solib = $(top_builddir)/src/efi/gummiboot.so
+gummiboot = gummiboot$(MACHINE_TYPE_NAME).efi
+
+gummibootlib_DATA = $(gummiboot)
+CLEANFILES += $(gummiboot_objects) $(gummiboot_solib) $(gummiboot)
+EXTRA_DIST += $(gimmiboot_sources) $(gummiboot_headers)
+
+$(top_builddir)/src/efi/%.o: $(top_srcdir)/src/efi/%.c $(addprefix $(top_srcdir)/,$(gummiboot_headers))
 	@$(MKDIR_P) $(top_builddir)/src/efi/
 	$(AM_V_CC)$(EFI_CC) $(efi_cppflags) $(efi_cflags) -c $< -o $@
 
-$(efi_solib): $(efi_objects)
-	$(AM_V_CCLD)$(LD) $(efi_ldflags) $(efi_objects) \
+$(gummiboot_solib): $(gummiboot_objects)
+	$(AM_V_CCLD)$(LD) $(efi_ldflags) $(gummiboot_objects) \
 		-o $@ -lefi -lgnuefi $(shell $(CC) -print-libgcc-file-name); \
 	nm -D -u $@ | grep ' U ' && exit 1 || :
-.DELETE_ON_ERROR: $(efi_solib)
+.DELETE_ON_ERROR: $(gummboot_solib)
 
-$(efi_loadername): $(efi_solib)
+$(gummiboot): $(gummiboot_solib)
+	$(AM_V_GEN) objcopy -j .text -j .sdata -j .data -j .dynamic \
+	  -j .dynsym -j .rel -j .rela -j .reloc \
+	  --target=efi-app-$(ARCH) $< $@
+
+# ------------------------------------------------------------------------------
+stub_headers = \
+	src/efi/util.h \
+	src/efi/pefile.h \
+	src/efi/linux.h
+
+stub_sources = \
+	src/efi/util.c \
+	src/efi/pefile.c \
+	src/efi/linux.c \
+	src/efi/stub.c
+
+stub_objects = $(addprefix $(top_builddir)/,$(stub_sources:.c=.o))
+stub_solib = $(top_builddir)/src/efi/stub.so
+stub = stub$(MACHINE_TYPE_NAME).efi
+
+gummibootlib_DATA += $(stub)
+CLEANFILES += $(stub_objects) $(stub_solib) $(stub)
+EXTRA_DIST += $(stub_sources) $(stub_headers)
+
+$(top_builddir)/src/efi/%.o: $(top_srcdir)/src/efi/%.c $(addprefix $(top_srcdir)/,$(stub_headers))
+	@$(MKDIR_P) $(top_builddir)/src/efi/
+	$(AM_V_CC)$(EFI_CC) $(efi_cppflags) $(efi_cflags) -c $< -o $@
+
+$(stub_solib): $(stub_objects)
+	$(AM_V_CCLD)$(LD) $(efi_ldflags) $(stub_objects) \
+		-o $@ -lefi -lgnuefi $(shell $(CC) -print-libgcc-file-name); \
+	nm -D -u $@ | grep ' U ' && exit 1 || :
+.DELETE_ON_ERROR: $(gummboot_solib)
+
+$(stub): $(stub_solib)
 	$(AM_V_GEN) objcopy -j .text -j .sdata -j .data -j .dynamic \
 	  -j .dynsym -j .rel -j .rela -j .reloc \
 	  --target=efi-app-$(ARCH) $< $@
