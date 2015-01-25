@@ -1570,10 +1570,12 @@ static BOOLEAN config_entry_add_call(Config *config, CHAR16 *title, EFI_STATUS (
         return TRUE;
 }
 
-static ConfigEntry *config_entry_add_loader(Config *config, EFI_HANDLE *device, CHAR16 *file, CHAR16 key, CHAR16 *title, CHAR16 *loader) {
+static ConfigEntry *config_entry_add_loader(Config *config, EFI_HANDLE *device,
+                                            enum loader_type type,CHAR16 *file, CHAR16 key, CHAR16 *title, CHAR16 *loader) {
         ConfigEntry *entry;
 
         entry = AllocateZeroPool(sizeof(ConfigEntry));
+        entry->type = type;
         entry->title = StrDuplicate(title);
         entry->device = device;
         entry->loader = StrDuplicate(loader);
@@ -1601,7 +1603,7 @@ static BOOLEAN config_entry_add_loader_auto(Config *config, EFI_HANDLE *device, 
                 return FALSE;
         uefi_call_wrapper(handle->Close, 1, handle);
 
-        entry = config_entry_add_loader(config, device, file, key, title, loader);
+        entry = config_entry_add_loader(config, device, LOADER_UNDEFINED, file, key, title, loader);
         if (!entry)
                 return FALSE;
 
@@ -1661,10 +1663,13 @@ static VOID config_entry_add_linux( Config *config, EFI_LOADED_IMAGE *loaded_ima
                         CHAR16 buf[256];
                         UINTN bufsize;
                         EFI_FILE_INFO *f;
-                        CHAR8 *sections[2] = { (UINT8 *)".osrel", NULL };
-                        UINTN offs[1] = {};
-                        UINTN szs[1] = {};
-                        UINTN addrs[1] = {};
+                        CHAR8 *sections[] = {
+                                (UINT8 *)".osrel",
+                                NULL
+                        };
+                        UINTN offs[ELEMENTSOF(sections)-1] = {};
+                        UINTN szs[ELEMENTSOF(sections)-1] = {};
+                        UINTN addrs[ELEMENTSOF(sections)-1] = {};
                         CHAR8 *content = NULL;
                         UINTN len;
                         CHAR8 *line;
@@ -1724,7 +1729,7 @@ static VOID config_entry_add_linux( Config *config, EFI_LOADED_IMAGE *loaded_ima
 
                                 conf = PoolPrint(L"%s-%s", os_id, os_version);
                                 path = PoolPrint(L"\\EFI\\Linux\\%s", f->FileName);
-                                config_entry_add_loader(config, loaded_image->DeviceHandle, conf, 'l', os_name, path);
+                                config_entry_add_loader(config, loaded_image->DeviceHandle, LOADER_LINUX, conf, 'l', os_name, path);
                                 FreePool(conf);
                                 FreePool(path);
                                 FreePool(os_name);

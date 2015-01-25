@@ -20,19 +20,28 @@
 #include "pefile.h"
 #include "linux.h"
 
+/* magic string to find in the binary image */
+static const char __attribute__((used)) magic[] = "#### LoaderInfo: stub " VERSION " ####";
+
+static const EFI_GUID global_guid = EFI_GLOBAL_VARIABLE;
+
 EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table) {
         EFI_LOADED_IMAGE *loaded_image;
         EFI_FILE *root_dir;
         CHAR16 *loaded_image_path;
+        CHAR8 *b;
+        UINTN size;
+        BOOLEAN secure = TRUE;
         CHAR8 *sections[] = {
                 (UINT8 *)".cmdline",
                 (UINT8 *)".linux",
                 (UINT8 *)".initrd",
                 NULL
         };
-        UINTN addrs[3] = {};
-        UINTN offs[3] = {};
-        UINTN szs[3] = {};
+        UINTN addrs[ELEMENTSOF(sections)-1] = {};
+        UINTN offs[ELEMENTSOF(sections)-1] = {};
+        UINTN szs[ELEMENTSOF(sections)-1] = {};
+        CHAR8 *cmdline = NULL;
         EFI_STATUS err;
 
         InitializeLib(image, sys_table);
@@ -54,6 +63,12 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table) {
 
         loaded_image_path = DevicePathToStr(loaded_image->FilePath);
 
+        if (efivar_get_raw(&global_guid, L"SecureBoot", &b, &size) == EFI_SUCCESS) {
+                if (*b == 0)
+                        secure = FALSE;
+                FreePool(b);
+        }
+
         err = pefile_locate_sections(root_dir, loaded_image_path, sections, addrs, offs, szs);
         if (EFI_ERROR(err)) {
                 Print(L"Unable to locate embedded .linux section: %r ", err);
@@ -61,7 +76,23 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table) {
                 return err;
         }
 
-        err = linux_exec(image, (CHAR8 *)"",
+        if (szs[0] > 0)
+                cmdline = (CHAR8 *)(loaded_image->ImageBase + addrs[0]);
+
+        /* if we are not in secure boot mode, accept a custom command line and replace the built-in one */
+        if (!secure && loaded_image->LoadOptionsSize > 0) {
+                CHAR16 *options;
+                CHAR8 *line;
+                UINTN i;
+
+                options = (CHAR16 *)loaded_image->LoadOptions;
+                line = AllocatePool((loaded_image->LoadOptionsSize / sizeof(CHAR16)) * sizeof(CHAR8));
+                for (i = 0; i < loaded_image->LoadOptionsSize; i++)
+                        line[i] = options[i];
+                cmdline = line;
+        }
+
+        err = linux_exec(image, cmdline,
                          (UINTN)loaded_image->ImageBase + addrs[1],
                          (UINTN)loaded_image->ImageBase + addrs[2], szs[2]);
 

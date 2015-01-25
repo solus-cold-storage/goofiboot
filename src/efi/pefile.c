@@ -154,7 +154,7 @@ EFI_STATUS pefile_locate_sections(EFI_FILE *dir, CHAR16 *path, CHAR8 **sections,
                         goto out;
                 }
                 for (j = 0; sections[j]; j++) {
-                        if (strcmpa(sections[j], sect.Name) != 0)
+                        if (CompareMem(sect.Name, sections[j], strlena(sections[j])) != 0)
                                 continue;
 
                         if (addrs)
