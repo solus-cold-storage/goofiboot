@@ -31,7 +31,7 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table) {
         CHAR16 *loaded_image_path;
         CHAR8 *b;
         UINTN size;
-        BOOLEAN secure = TRUE;
+        BOOLEAN secure = FALSE;
         CHAR8 *sections[] = {
                 (UINT8 *)".cmdline",
                 (UINT8 *)".linux",
@@ -64,8 +64,8 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table) {
         loaded_image_path = DevicePathToStr(loaded_image->FilePath);
 
         if (efivar_get_raw(&global_guid, L"SecureBoot", &b, &size) == EFI_SUCCESS) {
-                if (*b == 0)
-                        secure = FALSE;
+                if (*b > 0)
+                        secure = TRUE;
                 FreePool(b);
         }
 
