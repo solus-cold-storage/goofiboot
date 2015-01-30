@@ -165,7 +165,7 @@ stub_sources = \
 
 stub_objects = $(addprefix $(top_builddir)/,$(stub_sources:.c=.o))
 stub_solib = $(top_builddir)/src/efi/stub.so
-stub = stub$(MACHINE_TYPE_NAME).efi
+stub = linux$(MACHINE_TYPE_NAME).efi.stub
 
 gummibootlib_DATA += $(stub)
 CLEANFILES += $(stub_objects) $(stub_solib) $(stub)

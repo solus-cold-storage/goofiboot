@@ -25,7 +25,7 @@ objcopy \
   --add-section .cmdline=mnt/cmdline.txt --change-section-vma .cmdline=0x30000 \
   --add-section .linux=/boot/$(cat /etc/machine-id)/$(uname -r)/linux --change-section-vma .linux=0x40000 \
   --add-section .initrd=/boot/$(cat /etc/machine-id)/$(uname -r)/initrd --change-section-vma .initrd=0x3000000 \
-  stubx64.efi mnt/EFI/Linux/linux-test.efi
+  linuxx64.efi.stub mnt/EFI/Linux/linux-test.efi
 
 # install entries
 mkdir -p mnt/loader/entries
