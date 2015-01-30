@@ -78,7 +78,7 @@ typedef VOID(*handover_f)(VOID *image, EFI_SYSTEM_TABLE *table, struct SetupHead
 static inline VOID linux_efi_handover(EFI_HANDLE image, struct SetupHeader *setup) {
         handover_f handover;
 
-        handover = (handover_f)((UINTN)boot_setup->code32_start + setup->handover_offset);
+        handover = (handover_f)((UINTN)setup->code32_start + setup->handover_offset);
         handover(image, ST, setup);
 }
 #endif
@@ -103,7 +103,7 @@ EFI_STATUS linux_exec(EFI_HANDLE *image,
                                 EFI_SIZE_TO_PAGES(0x4000), &addr);
         if (EFI_ERROR(err))
                 return err;
-        boot_setup = (struct SetupHeader *)addr;
+        boot_setup = (struct SetupHeader *)(UINTN)addr;
         ZeroMem(boot_setup, 0x4000);
         CopyMem(boot_setup, image_setup, sizeof(struct SetupHeader));
         boot_setup->loader_id = 0xff;
@@ -116,7 +116,7 @@ EFI_STATUS linux_exec(EFI_HANDLE *image,
                                         EFI_SIZE_TO_PAGES(strlena(cmdline) + 1), &addr);
                 if (EFI_ERROR(err))
                         return err;
-                CopyMem((VOID *)addr, cmdline, strlena(cmdline) + 1);
+                CopyMem((VOID *)(UINTN)addr, cmdline, strlena(cmdline) + 1);
                 boot_setup->cmd_line_ptr = (UINT32)addr;
         }
 
