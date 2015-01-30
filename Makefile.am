@@ -134,7 +134,7 @@ gummiboot = gummiboot$(MACHINE_TYPE_NAME).efi
 
 gummibootlib_DATA = $(gummiboot)
 CLEANFILES += $(gummiboot_objects) $(gummiboot_solib) $(gummiboot)
-EXTRA_DIST += $(gimmiboot_sources) $(gummiboot_headers)
+EXTRA_DIST += $(gummiboot_sources) $(gummiboot_headers)
 
 $(top_builddir)/src/efi/%.o: $(top_srcdir)/src/efi/%.c $(addprefix $(top_srcdir)/,$(gummiboot_headers))
 	@$(MKDIR_P) $(top_builddir)/src/efi/
