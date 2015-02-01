@@ -84,7 +84,8 @@ static inline VOID linux_efi_handover(EFI_HANDLE image, struct SetupHeader *setu
 #endif
 
 EFI_STATUS linux_exec(EFI_HANDLE *image,
-                      CHAR8 *cmdline, UINTN linux_addr,
+                      CHAR8 *cmdline, UINTN cmdline_len,
+                      UINTN linux_addr,
                       UINTN initrd_addr, UINTN initrd_size) {
         struct SetupHeader *image_setup;
         struct SetupHeader *boot_setup;
@@ -113,10 +114,11 @@ EFI_STATUS linux_exec(EFI_HANDLE *image,
         if (cmdline) {
                 addr = 0xA0000;
                 err = uefi_call_wrapper(BS->AllocatePages, 4, AllocateMaxAddress, EfiLoaderData,
-                                        EFI_SIZE_TO_PAGES(strlena(cmdline) + 1), &addr);
+                                        EFI_SIZE_TO_PAGES(cmdline_len + 1), &addr);
                 if (EFI_ERROR(err))
                         return err;
-                CopyMem((VOID *)(UINTN)addr, cmdline, strlena(cmdline) + 1);
+                CopyMem((VOID *)(UINTN)addr, cmdline, cmdline_len);
+                ((CHAR8 *)addr)[cmdline_len] = 0;
                 boot_setup->cmd_line_ptr = (UINT32)addr;
         }
 

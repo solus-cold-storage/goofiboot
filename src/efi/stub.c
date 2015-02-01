@@ -42,6 +42,7 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table) {
         UINTN offs[ELEMENTSOF(sections)-1] = {};
         UINTN szs[ELEMENTSOF(sections)-1] = {};
         CHAR8 *cmdline = NULL;
+        UINTN cmdline_len;
         EFI_STATUS err;
 
         InitializeLib(image, sys_table);
@@ -79,6 +80,8 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table) {
         if (szs[0] > 0)
                 cmdline = (CHAR8 *)(loaded_image->ImageBase + addrs[0]);
 
+        cmdline_len = szs[0];
+
         /* if we are not in secure boot mode, accept a custom command line and replace the built-in one */
         if (!secure && loaded_image->LoadOptionsSize > 0) {
                 CHAR16 *options;
@@ -86,13 +89,14 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table) {
                 UINTN i;
 
                 options = (CHAR16 *)loaded_image->LoadOptions;
-                line = AllocatePool((loaded_image->LoadOptionsSize / sizeof(CHAR16)) * sizeof(CHAR8));
-                for (i = 0; i < loaded_image->LoadOptionsSize; i++)
+                cmdline_len = (loaded_image->LoadOptionsSize / sizeof(CHAR16)) * sizeof(CHAR8);
+                line = AllocatePool(cmdline_len);
+                for (i = 0; i < cmdline_len; i++)
                         line[i] = options[i];
                 cmdline = line;
         }
 
-        err = linux_exec(image, cmdline,
+        err = linux_exec(image, cmdline, cmdline_len,
                          (UINTN)loaded_image->ImageBase + addrs[1],
                          (UINTN)loaded_image->ImageBase + addrs[2], szs[2]);
 
