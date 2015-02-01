@@ -19,7 +19,7 @@ cp test/splash.bmp mnt/EFI/gummiboot/
 [ -e /boot/shellx64.efi ] && cp /boot/shellx64.efi mnt/
 
 mkdir mnt/EFI/Linux
-echo "foo=yes bar=no debug" > mnt/cmdline.txt
+echo -n "foo=yes bar=no root=/dev/fakeroot debug rd.break=initqueue" > mnt/cmdline.txt
 objcopy \
   --add-section .osrel=/etc/os-release --change-section-vma .osrel=0x20000 \
   --add-section .cmdline=mnt/cmdline.txt --change-section-vma .cmdline=0x30000 \
