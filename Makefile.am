@@ -194,7 +194,7 @@ test-disk.img: gummiboot$(MACHINE_TYPE_NAME).efi test/test-create-disk.sh
 	$(AM_V_GEN)test/test-create-disk.sh
 
 qemu: test-disk.img
-	$(QEMU) -machine accel=kvm -m 256 -bios $(QEMU_BIOS) -snapshot test-disk.img
+	$(QEMU) -machine accel=kvm -m 1024 -bios $(QEMU_BIOS) -snapshot test-disk.img
 
 install-tree: all
 	rm -rf $(abs_srcdir)/install-tree
