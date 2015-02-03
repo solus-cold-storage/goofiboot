@@ -105,7 +105,7 @@ efi_cflags += \
 endif
 
 efi_ldflags = \
-	$(EFI_LDLAGS) \
+	$(EFI_LDLFAGS) \
 	-T $(EFI_LDS_DIR)/elf_$(ARCH)_efi.lds \
 	-shared \
 	-Bsymbolic \
