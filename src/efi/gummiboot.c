@@ -84,6 +84,7 @@ typedef struct {
         CHAR16 *entry_oneshot;
         CHAR16 *options_edit;
         CHAR16 *entries_auto;
+        BOOLEAN disable_edit;
 } Config;
 
 static VOID cursor_left(UINTN *cursor, UINTN *first)
@@ -458,6 +459,7 @@ static VOID print_status(Config *config, EFI_FILE *root_dir, CHAR16 *loaded_imag
                       config->background->Red,
                       config->background->Green,
                       config->background->Blue);
+        Print(L"editing                 %s\n", config->disable_edit ? L"disabled" : L"enabled");
         Print(L"\n");
 
         Print(L"config entry count:     %d\n", config->entry_count);
@@ -846,7 +848,7 @@ static BOOLEAN menu_run(Config *config, ConfigEntry **chosen_entry, EFI_FILE *ro
 
                 case KEYPRESS(0, 0, 'e'):
                         /* only the options of configured entries can be edited */
-                        if (config->entries[idx_highlight]->type == LOADER_UNDEFINED)
+                        if (config->disable_edit || config->entries[idx_highlight]->type == LOADER_UNDEFINED)
                                 break;
                         uefi_call_wrapper(ST->ConOut->SetAttribute, 2, ST->ConOut, EFI_LIGHTGRAY|EFI_BACKGROUND_BLACK);
                         uefi_call_wrapper(ST->ConOut->SetCursorPosition, 3, ST->ConOut, 0, y_max-1);
@@ -1111,6 +1113,14 @@ static VOID config_defaults_load_from_file(Config *config, CHAR8 *content) {
                         c[0] = value[5];
                         c[1] = value[6];
                         config->background->Blue = xtoi(c);
+                        continue;
+                }
+
+                if (strcmpa((CHAR8 *)"editing", key) == 0) {
+                        if (strcmpa((CHAR8 *)"enable", value) == 0 || strcmpa((CHAR8 *)"enabled", value) == 0)
+                                 config->disable_edit = FALSE;
+                        else if (strcmpa((CHAR8 *)"disable", value) == 0 || strcmpa((CHAR8 *)"disabled", value) == 0)
+                                 config->disable_edit = TRUE;
                         continue;
                 }
         }
