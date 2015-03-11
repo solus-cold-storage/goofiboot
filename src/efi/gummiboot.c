@@ -84,7 +84,7 @@ typedef struct {
         CHAR16 *entry_oneshot;
         CHAR16 *options_edit;
         CHAR16 *entries_auto;
-        BOOLEAN disable_edit;
+        BOOLEAN no_editor;
 } Config;
 
 static VOID cursor_left(UINTN *cursor, UINTN *first)
@@ -431,7 +431,7 @@ static VOID print_status(Config *config, EFI_FILE *root_dir, CHAR16 *loaded_imag
                 Print(L"console size:           %d x %d\n", x, y);
 
         if (efivar_get_raw(&global_guid, L"SecureBoot", &b, &size) == EFI_SUCCESS) {
-                Print(L"SecureBoot:             %s\n", *b > 0 ? L"enabled" : L"disabled");
+                Print(L"SecureBoot:             %s\n", yes_no(*b > 0));
                 FreePool(b);
         }
 
@@ -459,7 +459,7 @@ static VOID print_status(Config *config, EFI_FILE *root_dir, CHAR16 *loaded_imag
                       config->background->Red,
                       config->background->Green,
                       config->background->Blue);
-        Print(L"editing                 %s\n", config->disable_edit ? L"disabled" : L"enabled");
+        Print(L"editor:                 %s\n", yes_no(!config->no_editor));
         Print(L"\n");
 
         Print(L"config entry count:     %d\n", config->entry_count);
@@ -531,7 +531,7 @@ static VOID print_status(Config *config, EFI_FILE *root_dir, CHAR16 *loaded_imag
                         Print(L"options                 '%s'\n", entry->options);
                 if (entry->splash)
                         Print(L"splash                  '%s'\n", entry->splash);
-                Print(L"auto-select             %s\n", entry->no_autoselect ? L"no" : L"yes");
+                Print(L"auto-select             %s\n", yes_no(!entry->no_autoselect));
                 if (entry->call)
                         Print(L"internal call           yes\n");
 
@@ -848,7 +848,7 @@ static BOOLEAN menu_run(Config *config, ConfigEntry **chosen_entry, EFI_FILE *ro
 
                 case KEYPRESS(0, 0, 'e'):
                         /* only the options of configured entries can be edited */
-                        if (config->disable_edit || config->entries[idx_highlight]->type == LOADER_UNDEFINED)
+                        if (config->no_editor || config->entries[idx_highlight]->type == LOADER_UNDEFINED)
                                 break;
                         uefi_call_wrapper(ST->ConOut->SetAttribute, 2, ST->ConOut, EFI_LIGHTGRAY|EFI_BACKGROUND_BLACK);
                         uefi_call_wrapper(ST->ConOut->SetCursorPosition, 3, ST->ConOut, 0, y_max-1);
@@ -1116,12 +1116,12 @@ static VOID config_defaults_load_from_file(Config *config, CHAR8 *content) {
                         continue;
                 }
 
-                if (strcmpa((CHAR8 *)"editing", key) == 0) {
-                        if (strcmpa((CHAR8 *)"enable", value) == 0 || strcmpa((CHAR8 *)"enabled", value) == 0)
-                                 config->disable_edit = FALSE;
-                        else if (strcmpa((CHAR8 *)"disable", value) == 0 || strcmpa((CHAR8 *)"disabled", value) == 0)
-                                 config->disable_edit = TRUE;
-                        continue;
+                if (strcmpa((CHAR8 *)"editor", key) == 0) {
+                        BOOLEAN on;
+
+                        if (EFI_ERROR(parse_boolean(value, &on)))
+                                continue;
+                        config->no_editor = !on;
                 }
         }
 }
