@@ -11,6 +11,8 @@ It's been stated on several occassions that systemd-boot is "not a direct
 successor", and "systemd-boot does not support some of the features gummiboot
 supported". As such, this fork becomes a separate and independent bootloader.
 
+**Note**: This fork is not yet ready for use.
+
 License
 =======
 
