@@ -320,9 +320,9 @@ static int enumerate_binaries(const char *esp_path, const char *path, const char
         }
 
         while ((de = readdir(d))) {
-                char *v;
+                char *v = NULL;
                 size_t n;
-                FILE *f;
+                FILE *f = NULL;
 
                 if (de->d_name[0] == '.')
                         continue;
