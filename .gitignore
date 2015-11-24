@@ -15,6 +15,7 @@
 /stubx64.efi
 /stubia32.efi
 /test-disk
+/*.stub
 
 Makefile
 aclocal.m4
