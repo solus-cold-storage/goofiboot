@@ -22,13 +22,15 @@ AM_MAKEFLAGS = --no-print-directory
 
 goofibootlibdir = $(prefix)/lib/goofiboot
 
-AM_CPPFLAGS = -include config.h
+AM_CPPFLAGS = -include config.h -I$(top_srcdir)/src
+
 AM_CFLAGS = \
-	-D_GNU_SOURCE \
-	-Wall \
-	-Wextra \
-	-Wmissing-prototypes \
-	-Wno-unused-parameter
+	-Wall -Wextra -D_GNU_SOURCE \
+	-Wstrict-prototypes -Wundef -fno-common \
+	-Werror-implicit-function-declaration \
+	-Wformat -Wformat-security -Werror=format-security \
+	-Wunused-variable -Wunreachable-code \
+	-Wall -W -Werror
 AM_LDFLAGS =
 
 EXTRA_DIST = autogen.sh README.rst LICENSE
@@ -41,7 +43,8 @@ bin_PROGRAMS = goofiboot
 goofiboot_SOURCES = \
 	src/setup/setup.c \
 	src/setup/efivars.c \
-	src/setup/efivars.h
+	src/setup/efivars.h \
+	src/common.h
 
 goofiboot_CPPFLAGS = \
 	$(AM_CPPFLAGS) \

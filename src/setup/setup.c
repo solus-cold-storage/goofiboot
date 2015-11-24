@@ -39,6 +39,7 @@
 #include <blkid.h>
 
 #include "efivars.h"
+#include "common.h"
 
 #define ELEMENTSOF(x) (sizeof(x)/sizeof((x)[0]))
 #define streq(a,b) (strcmp((a),(b)) == 0)
@@ -1019,7 +1020,7 @@ finish:
         return r;
 }
 
-static int delete_nftw(const char *path, const struct stat *sb, int typeflag, struct FTW *ftw) {
+static int delete_nftw(const char *path, __unused__ const struct stat *sb, int typeflag, __unused__ struct FTW *ftw) {
         int r;
 
         if (typeflag == FTW_D || typeflag == FTW_DNR || typeflag == FTW_DP)
