@@ -13,10 +13,11 @@
  *
  * Copyright (C) 2012-2013 Kay Sievers <kay@vrfy.org>
  * Copyright (C) 2012 Harald Hoyer <harald@redhat.com>
+ * Copyright (C) 2015 Ikey Doherty <ikey@solus-project.com>
  */
 
-#ifndef __GUMMIBOOT_UTIL_H
-#define __GUMMIBOOT_UTIL_H
+#ifndef __GOOFIBOOT_UTIL_H
+#define __GOOFIBOOT_UTIL_H
 
 #include <efi.h>
 #include <efilib.h>

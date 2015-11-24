@@ -14,11 +14,13 @@
  * Copyright (C) 2012-2013 Kay Sievers <kay@vrfy.org>
  * Copyright (C) 2012 Harald Hoyer <harald@redhat.com>
  * Copyright (C) 2013 Intel Corporation
+ * Copyright (C) 2015 Ikey Doherty <ikey@solus-project.com>
+ *
  *   Authored by Joonas Lahtinen <joonas.lahtinen@linux.intel.com>
  */
 
-#ifndef __GUMMIBOOT_GRAPHICS_H
-#define __GUMMIBOOT_GRAPHICS_H
+#ifndef __GOOFIBOOT_GRAPHICS_H
+#define __GOOFIBOOT_GRAPHICS_H
 
 EFI_STATUS graphics_mode(BOOLEAN on);
 EFI_STATUS graphics_splash(EFI_FILE *root_dir, CHAR16 *path,

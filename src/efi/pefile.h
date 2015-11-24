@@ -12,10 +12,11 @@
  * Lesser General Public License for more details.
  *
  * Copyright (C) 2015 Kay Sievers <kay@vrfy.org>
+ * Copyright (C) 2015 Ikey Doherty <ikey@solus-project.com>
  */
 
-#ifndef __GUMMIBOOT_PEFILE_H
-#define __GUMMIBOOT_PEFILE_H
+#ifndef __GOOFIBOOT_PEFILE_H
+#define __GOOFIBOOT_PEFILE_H
 
 EFI_STATUS pefile_locate_sections(EFI_FILE *dir, CHAR16 *path,
                                   CHAR8 **sections, UINTN *addrs, UINTN *offsets, UINTN *sizes);

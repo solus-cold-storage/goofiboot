@@ -12,10 +12,11 @@
  * Lesser General Public License for more details.
  *
  * Copyright (C) 2015 Kay Sievers <kay@vrfy.org>
+ * Copyright (C) 2015 Ikey Doherty <ikey@solus-project.com>
  */
 
-#ifndef __GUMMIBOOT_kernel_H
-#define __GUMMIBOOT_kernel_H
+#ifndef __GOOFIBOOT_kernel_H
+#define __GOOFIBOOT_kernel_H
 
 EFI_STATUS linux_exec(EFI_HANDLE *image,
                       CHAR8 *cmdline, UINTN cmdline_size,

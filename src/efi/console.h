@@ -13,10 +13,11 @@
  *
  * Copyright (C) 2012-2013 Kay Sievers <kay@vrfy.org>
  * Copyright (C) 2012 Harald Hoyer <harald@redhat.com>
+ * Copyright (C) 2015 Ikey Doherty <ikey@solus-project.com>
  */
 
-#ifndef __GUMMIBOOT_CONSOLE_H
-#define __GUMMIBOOT_CONSOLE_H
+#ifndef __GOOFIBOOT_CONSOLE_H
+#define __GOOFIBOOT_CONSOLE_H
 
 #define EFI_SHIFT_STATE_VALID           0x80000000
 #define EFI_RIGHT_CONTROL_PRESSED       0x00000004

@@ -248,7 +248,7 @@ fail:
         return r;
 }
 
-/* search for "#### LoaderInfo: gummiboot 31 ####" string inside the binary */
+/* search for "#### LoaderInfo: goofiboot 31 ####" string inside the binary */
 static int get_file_version(FILE *f, char **v) {
         struct stat st;
         char *buf;
@@ -384,9 +384,9 @@ static int status_binaries(const char *esp_path, uint8_t partition[16]) {
                partition[0], partition[1], partition[2], partition[3], partition[4], partition[5], partition[6], partition[7],
                partition[8], partition[9], partition[10], partition[11], partition[12], partition[13], partition[14], partition[15]);
 
-        r = enumerate_binaries(esp_path, "EFI/gummiboot", NULL);
+        r = enumerate_binaries(esp_path, "EFI/goofiboot", NULL);
         if (r == 0)
-                fprintf(stderr, "Gummiboot not installed in ESP.\n");
+                fprintf(stderr, "Goofiboot not installed in ESP.\n");
         else if (r < 0)
                 return r;
 
@@ -720,7 +720,7 @@ static int create_dirs(const char *esp_path) {
         if (r < 0)
                 return r;
 
-        r = mkdir_one(esp_path, "EFI/gummiboot");
+        r = mkdir_one(esp_path, "EFI/goofiboot");
         if (r < 0)
                 return r;
 
@@ -743,13 +743,13 @@ static int copy_one_file(const char *esp_path, const char *name, bool force) {
         char *p = NULL, *q = NULL, *v = NULL;
         int r;
 
-        if (asprintf(&p, GUMMIBOOTLIBDIR "/%s", name) < 0) {
+        if (asprintf(&p, GOOFIBOOTLIBDIR "/%s", name) < 0) {
                 fprintf(stderr, "Out of memory.\n");
                 r = -ENOMEM;
                 goto finish;
         }
 
-        if (asprintf(&q, "%s/EFI/gummiboot/%s", esp_path, name) < 0) {
+        if (asprintf(&q, "%s/EFI/goofiboot/%s", esp_path, name) < 0) {
                 fprintf(stderr, "Out of memory.\n");
                 r = -ENOMEM;
                 goto finish;
@@ -757,7 +757,7 @@ static int copy_one_file(const char *esp_path, const char *name, bool force) {
 
         r = copy_file(p, q, force);
 
-        if (strncmp(name, "gummiboot", 9) == 0) {
+        if (strncmp(name, "goofiboot", 9) == 0) {
                 int k;
 
                 /* Create the EFI default boot loader name (specified for removable devices) */
@@ -798,9 +798,9 @@ static int install_binaries(const char *esp_path, bool force) {
                         return r;
         }
 
-        d = opendir(GUMMIBOOTLIBDIR);
+        d = opendir(GOOFIBOOTLIBDIR);
         if (!d) {
-                fprintf(stderr, "Failed to open "GUMMIBOOTLIBDIR": %m\n");
+                fprintf(stderr, "Failed to open "GOOFIBOOTLIBDIR": %m\n");
                 return -errno;
         }
 
@@ -857,7 +857,7 @@ static int find_slot(const uint8_t uuid[16], const char *path, uint16_t *id) {
         if (n_options < 0)
                 return n_options;
 
-        /* find already existing gummiboot entry */
+        /* find already existing goofiboot entry */
         for (i = 0; i < n_options; i++)
                 if (same_entry(options[i], uuid, path)) {
                         new_id = options[i];
@@ -1100,7 +1100,7 @@ static int remove_boot_efi(const char *esp_path) {
                 if (r < 0)
                         goto finish;
 
-                if (r > 0 && strncmp(v, "gummiboot ", 10) == 0) {
+                if (r > 0 && strncmp(v, "goofiboot ", 10) == 0) {
 
                         r = unlink(q);
                         if (r < 0) {
@@ -1153,7 +1153,7 @@ static int remove_binaries(const char *esp_path) {
         char *p;
         int r, q;
 
-        if (asprintf(&p, "%s/EFI/gummiboot", esp_path) < 0) {
+        if (asprintf(&p, "%s/EFI/goofiboot", esp_path) < 0) {
                 fprintf(stderr, "Out of memory.\n");
                 return -ENOMEM;
         }
@@ -1177,7 +1177,7 @@ static int remove_binaries(const char *esp_path) {
         if (q < 0 && r == 0)
                 r = q;
 
-        q = rmdir_one(esp_path, "EFI/gummiboot");
+        q = rmdir_one(esp_path, "EFI/goofiboot");
         if (q < 0 && r == 0)
                 r = q;
 
@@ -1253,17 +1253,17 @@ static int install_loader_config(const char *esp_path) {
 static int help(void) {
         printf("%s [COMMAND] [OPTIONS...]\n"
                "\n"
-               "Install, update or remove the Gummiboot EFI boot loader.\n\n"
+               "Install, update or remove the Goofiboot EFI boot loader.\n\n"
                "  -h --help          Show this help\n"
                "     --version       Print version\n"
                "     --path=PATH     Path to the EFI System Partition (ESP)\n"
                "     --no-variables  Don't touch EFI variables\n"
                "\n"
                "Comands:\n"
-               "     status          Show status of installed Gummiboot and EFI variables\n"
-               "     install         Install Gummiboot to the ESP and EFI variables\n"
-               "     update          Update Gummiboot in the ESP and EFI variables\n"
-               "     remove          Remove Gummiboot from the ESP and EFI variables\n",
+               "     status          Show status of installed Goofiboot and EFI variables\n"
+               "     install         Install Goofiboot to the ESP and EFI variables\n"
+               "     update          Update Goofiboot in the ESP and EFI variables\n"
+               "     remove          Remove Goofiboot from the ESP and EFI variables\n",
                program_invocation_short_name);
 
         return 0;
@@ -1406,7 +1406,7 @@ int main(int argc, char*argv[]) {
                 if (arg_touch_variables)
                         r = install_variables(arg_path,
                                               part, pstart, psize, uuid,
-                                              "/EFI/gummiboot/gummiboot" MACHINE_TYPE_NAME ".efi",
+                                              "/EFI/goofiboot/goofiboot" MACHINE_TYPE_NAME ".efi",
                                               arg_action == ACTION_INSTALL);
                 break;
 
@@ -1414,7 +1414,7 @@ int main(int argc, char*argv[]) {
                 r = remove_binaries(arg_path);
 
                 if (arg_touch_variables) {
-                        q = remove_variables(uuid, "/EFI/gummiboot/gummiboot" MACHINE_TYPE_NAME ".efi", true);
+                        q = remove_variables(uuid, "/EFI/goofiboot/goofiboot" MACHINE_TYPE_NAME ".efi", true);
                         if (q < 0 && r == 0)
                                 r = q;
                 }

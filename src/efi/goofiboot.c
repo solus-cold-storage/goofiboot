@@ -5,7 +5,7 @@
  * default entry is selected by a configured pattern (glob) or an on-screen
  * menu.
  *
- * All gummiboot code is LGPL not GPL, to stay out of politics and to give
+ * All goofiboot code is LGPL not GPL, to stay out of politics and to give
  * the freedom of copying code from programs to possible future libraries.
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -20,6 +20,7 @@
  *
  * Copyright (C) 2012-2013 Kay Sievers <kay@vrfy.org>
  * Copyright (C) 2012 Harald Hoyer <harald@redhat.com>
+ * Copyright (C) 2015 Ikey Doherty <ikey@solus-project.com>
  *
  * "Any intelligent fool can make things bigger, more complex, and more violent."
  *   -- Albert Einstein
@@ -43,7 +44,7 @@
 #endif
 
 /* magic string to find in the binary image */
-static const char __attribute__((used)) magic[] = "#### LoaderInfo: gummiboot " VERSION " ####";
+static const char __attribute__((used)) magic[] = "#### LoaderInfo: goofiboot " VERSION " ####";
 
 static const EFI_GUID global_guid = EFI_GLOBAL_VARIABLE;
 
@@ -401,7 +402,7 @@ static VOID print_status(Config *config, EFI_FILE *root_dir, CHAR16 *loaded_imag
                 if (config->splash)
                         err = graphics_splash(root_dir, config->splash, pixel);
                 if (EFI_ERROR(err))
-                        err = graphics_splash(root_dir, L"\\EFI\\gummiboot\\splash.bmp", pixel);
+                        err = graphics_splash(root_dir, L"\\EFI\\goofiboot\\splash.bmp", pixel);
                 if (EFI_ERROR(err))
                         break;
 
@@ -420,8 +421,8 @@ static VOID print_status(Config *config, EFI_FILE *root_dir, CHAR16 *loaded_imag
                 break;
         }
 
-        Print(L"gummiboot version:      " VERSION "\n");
-        Print(L"gummiboot architecture: " MACHINE_TYPE_NAME "\n");
+        Print(L"goofiboot version:      " VERSION "\n");
+        Print(L"goofiboot architecture: " MACHINE_TYPE_NAME "\n");
         Print(L"loaded image:           %s\n", loaded_image_path);
         Print(L"UEFI specification:     %d.%02d\n", ST->Hdr.Revision >> 16, ST->Hdr.Revision & 0xffff);
         Print(L"firmware vendor:        %s\n", ST->FirmwareVendor);
@@ -860,7 +861,7 @@ static BOOLEAN menu_run(Config *config, ConfigEntry **chosen_entry, EFI_FILE *ro
                         break;
 
                 case KEYPRESS(0, 0, 'v'):
-                        status = PoolPrint(L"gummiboot " VERSION " (" MACHINE_TYPE_NAME "), UEFI Specification %d.%02d, Vendor %s %d.%02d",
+                        status = PoolPrint(L"goofiboot " VERSION " (" MACHINE_TYPE_NAME "), UEFI Specification %d.%02d, Vendor %s %d.%02d",
                                            ST->Hdr.Revision >> 16, ST->Hdr.Revision & 0xffff,
                                            ST->FirmwareVendor, ST->FirmwareRevision >> 16, ST->FirmwareRevision & 0xffff);
                         break;
@@ -1178,7 +1179,7 @@ static VOID config_entry_add_from_file(Config *config, EFI_HANDLE *device, CHAR1
                 }
 
                 if (strcmpa((CHAR8 *)"architecture", key) == 0) {
-                        /* do not add an entry for an EFI image of architecture not matching with that of the gummiboot image */
+                        /* do not add an entry for an EFI image of architecture not matching with that of the goofiboot image */
                         if (strcmpa((CHAR8 *)MACHINE_TYPE_NAME, value) != 0) {
                                 entry->type = LOADER_UNDEFINED;
                                 break;
@@ -1855,7 +1856,7 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table) {
         InitializeLib(image, sys_table);
         init_usec = time_usec();
         efivar_set_time_usec(L"LoaderTimeInitUSec", init_usec);
-        efivar_set(L"LoaderInfo", L"gummiboot " VERSION, FALSE);
+        efivar_set(L"LoaderInfo", L"goofiboot " VERSION, FALSE);
         s = PoolPrint(L"%s %d.%02d", ST->FirmwareVendor, ST->FirmwareRevision >> 16, ST->FirmwareRevision & 0xffff);
         efivar_set(L"LoaderFirmwareInfo", s, FALSE);
         FreePool(s);
@@ -2014,7 +2015,7 @@ EFI_STATUS efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table) {
 
                         /* default splash */
                         if (EFI_ERROR(err))
-                                graphics_splash(root_dir, L"\\EFI\\gummiboot\\splash.bmp", config.background);
+                                graphics_splash(root_dir, L"\\EFI\\goofiboot\\splash.bmp", config.background);
                 }
 
                 /* export the selected boot entry to the system */

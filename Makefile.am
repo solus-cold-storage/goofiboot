@@ -53,7 +53,7 @@ goofiboot_SOURCES = \
 goofiboot_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	-DMACHINE_TYPE_NAME=\"$(MACHINE_TYPE_NAME)\" \
-	-DGUMMIBOOTLIBDIR=\"$(goofibootlibdir)\"
+	-DGOOFIBOOTLIBDIR=\"$(goofibootlibdir)\"
 
 goofiboot_CFLAGS = \
 	$(AM_CFLAGS) \
