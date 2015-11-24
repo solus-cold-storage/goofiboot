@@ -1,14 +1,15 @@
 #
-#  This file is part of gummiboot.
+#  This file is part of goofiboot.
 #
 #  Copyright (C) 2013 Karel Zak <kzak@redhat.com>
+#  Copyright (C) 2015 Ikey Doherty <ikey@solus-project.com>
 #
-#  gummiboot is free software; you can redistribute it and/or modify it
+#  goofiboot is free software; you can redistribute it and/or modify it
 #  under the terms of the GNU Lesser General Public License as published by
 #  the Free Software Foundation; either version 2.1 of the License, or
 #  (at your option) any later version.
 #
-#  gummiboot is distributed in the hope that it will be useful, but
+#  goofiboot is distributed in the hope that it will be useful, but
 #  WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 #  Lesser General Public License for more details.
@@ -16,11 +17,11 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with systemd; If not, see <http://www.gnu.org/licenses/>.
 
-AC_INIT([gummiboot],
+AC_INIT([goofiboot],
         [48],
-        [systemd-devel@lists.freedesktop.org],
-        [gummiboot],
-        [http://freedesktop.org/wiki/Software/gummiboot])
+        [ikey@solus-project.com],
+        [goofiboot],
+        [https://github.com/solus-project/goofiboot])
 
 AC_CONFIG_SRCDIR([src/setup/setup.c])
 AC_CONFIG_MACRO_DIR([m4])

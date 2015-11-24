@@ -1,14 +1,15 @@
 #
-#  This file is part of gummiboot
+#  This file is part of goofiboot
 #
 #  Copyright (C) 2013 Karel Zak <kzak@redhat.com>
+#  Copyright (C) 2015 Ikey Doherty <ikey@solus-project.com>
 #
-#  gummiboot is free software; you can redistribute it and/or modify it
+#  goofiboot is free software; you can redistribute it and/or modify it
 #  under the terms of the GNU Lesser General Public License as published by
 #  the Free Software Foundation; either version 2.1 of the License, or
 #  (at your option) any later version.
 #
-#  gummiboot is distributed in the hope that it will be useful, but
+#  goofiboot is distributed in the hope that it will be useful, but
 #  WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 #  Lesser General Public License for more details.
@@ -19,7 +20,7 @@
 ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 AM_MAKEFLAGS = --no-print-directory
 
-gummibootlibdir = $(prefix)/lib/gummiboot
+goofibootlibdir = $(prefix)/lib/goofiboot
 
 AM_CPPFLAGS = -include config.h
 AM_CFLAGS = \
@@ -35,23 +36,23 @@ CLEANFILES =
 
 # ------------------------------------------------------------------------------
 if HAVE_BLKID
-bin_PROGRAMS = gummiboot
+bin_PROGRAMS = goofiboot
 
-gummiboot_SOURCES = \
+goofiboot_SOURCES = \
 	src/setup/setup.c \
 	src/setup/efivars.c \
 	src/setup/efivars.h
 
-gummiboot_CPPFLAGS = \
+goofiboot_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	-DMACHINE_TYPE_NAME=\"$(MACHINE_TYPE_NAME)\" \
-	-DGUMMIBOOTLIBDIR=\"$(gummibootlibdir)\"
+	-DGUMMIBOOTLIBDIR=\"$(goofibootlibdir)\"
 
-gummiboot_CFLAGS = \
+goofiboot_CFLAGS = \
 	$(AM_CFLAGS) \
 	$(BLKID_CFLAGS)
 
-gummiboot_LDADD = \
+goofiboot_LDADD = \
 	$(BLKID_LIBS)
 endif
 
@@ -64,11 +65,11 @@ if ENABLE_MANPAGES
 	  --stringparam man.copyright.section.enabled 0 \
 	  http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl $<
 
-dist_man_MANS = man/gummiboot.8
+dist_man_MANS = man/goofiboot.8
 endif
 
-EXTRA_DIST += man/gummiboot.xml
-CLEANFILES += man/gummiboot.8
+EXTRA_DIST += man/goofiboot.xml
+CLEANFILES += man/goofiboot.8
 
 # ------------------------------------------------------------------------------
 # EFI compilation -- this part of the build system uses custom make rules and
@@ -116,38 +117,38 @@ efi_ldflags = \
 	$(EFI_LDS_DIR)/crt0-efi-$(ARCH).o
 
 # ------------------------------------------------------------------------------
-gummiboot_headers = \
+goofiboot_headers = \
 	src/efi/util.h \
 	src/efi/console.h \
 	src/efi/graphics.h \
 	src/efi/pefile.h
 
-gummiboot_sources = \
+goofiboot_sources = \
 	src/efi/util.c \
 	src/efi/console.c \
 	src/efi/graphics.c \
 	src/efi/pefile.c \
-	src/efi/gummiboot.c
+	src/efi/goofiboot.c
 
-gummiboot_objects = $(addprefix $(top_builddir)/,$(gummiboot_sources:.c=.o))
-gummiboot_solib = $(top_builddir)/src/efi/gummiboot.so
-gummiboot = gummiboot$(MACHINE_TYPE_NAME).efi
+goofiboot_objects = $(addprefix $(top_builddir)/,$(goofiboot_sources:.c=.o))
+goofiboot_solib = $(top_builddir)/src/efi/goofiboot.so
+goofiboot = goofiboot$(MACHINE_TYPE_NAME).efi
 
-gummibootlib_DATA = $(gummiboot)
-CLEANFILES += $(gummiboot_objects) $(gummiboot_solib) $(gummiboot)
-EXTRA_DIST += $(gummiboot_sources) $(gummiboot_headers)
+goofibootlib_DATA = $(goofiboot)
+CLEANFILES += $(goofiboot_objects) $(goofiboot_solib) $(goofiboot)
+EXTRA_DIST += $(goofiboot_sources) $(goofiboot_headers)
 
-$(top_builddir)/src/efi/%.o: $(top_srcdir)/src/efi/%.c $(addprefix $(top_srcdir)/,$(gummiboot_headers))
+$(top_builddir)/src/efi/%.o: $(top_srcdir)/src/efi/%.c $(addprefix $(top_srcdir)/,$(goofiboot_headers))
 	@$(MKDIR_P) $(top_builddir)/src/efi/
 	$(AM_V_CC)$(EFI_CC) $(efi_cppflags) $(efi_cflags) -c $< -o $@
 
-$(gummiboot_solib): $(gummiboot_objects)
-	$(AM_V_CCLD)$(LD) $(efi_ldflags) $(gummiboot_objects) \
+$(goofiboot_solib): $(goofiboot_objects)
+	$(AM_V_CCLD)$(LD) $(efi_ldflags) $(goofiboot_objects) \
 		-o $@ -lefi -lgnuefi $(shell $(CC) -print-libgcc-file-name); \
 	nm -D -u $@ | grep ' U ' && exit 1 || :
 .DELETE_ON_ERROR: $(gummboot_solib)
 
-$(gummiboot): $(gummiboot_solib)
+$(goofiboot): $(goofiboot_solib)
 	$(AM_V_GEN) objcopy -j .text -j .sdata -j .data -j .dynamic \
 	  -j .dynsym -j .rel -j .rela -j .reloc \
 	  --target=efi-app-$(ARCH) $< $@
@@ -168,7 +169,7 @@ stub_objects = $(addprefix $(top_builddir)/,$(stub_sources:.c=.o))
 stub_solib = $(top_builddir)/src/efi/stub.so
 stub = linux$(MACHINE_TYPE_NAME).efi.stub
 
-gummibootlib_DATA += $(stub)
+goofibootlib_DATA += $(stub)
 CLEANFILES += $(stub_objects) $(stub_solib) $(stub)
 EXTRA_DIST += $(stub_sources) $(stub_headers)
 
@@ -191,7 +192,7 @@ $(stub): $(stub_solib)
 CLEANFILES += test-disk.img
 EXTRA_DIST += test/test-create-disk.sh
 
-test-disk.img: gummiboot$(MACHINE_TYPE_NAME).efi test/test-create-disk.sh
+test-disk.img: goofiboot$(MACHINE_TYPE_NAME).efi test/test-create-disk.sh
 	$(AM_V_GEN)test/test-create-disk.sh
 
 qemu: test-disk.img

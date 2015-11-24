@@ -7,10 +7,10 @@
 .libs
 *.8
 .dirstamp
-/gummiboot
-/gummiboot.so
-/gummibootx64.efi
-/gummibootia32.efi
+/goofiboot
+/goofiboot.so
+/goofibootx64.efi
+/goofibootia32.efi
 /stub.so
 /stubx64.efi
 /stubia32.efi
