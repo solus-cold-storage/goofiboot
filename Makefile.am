@@ -24,13 +24,17 @@ goofibootlibdir = $(prefix)/lib/goofiboot
 
 AM_CPPFLAGS = -include config.h -I$(top_srcdir)/src
 
-AM_CFLAGS = \
-	-Wall -Wextra -D_GNU_SOURCE \
-	-Wstrict-prototypes -Wundef -fno-common \
+COMMON_CFLAGS = \
+	-Wall -Wextra  -D_GNU_SOURCE \
+	-fno-common \
 	-Werror-implicit-function-declaration \
 	-Wformat -Wformat-security -Werror=format-security \
 	-Wunused-variable -Wunreachable-code \
-	-Wall -W -Werror
+	-W -Werror
+
+AM_CFLAGS = \
+	$(COMMON_CFLAGS) -Wstrict-prototypes -Wundef 
+
 AM_LDFLAGS =
 
 EXTRA_DIST = autogen.sh README.rst LICENSE
@@ -99,6 +103,7 @@ efi_cflags = \
 	-fno-strict-aliasing \
 	-fno-stack-protector \
 	-Wsign-compare \
+	$(COMMON_CFLAGS) \
 	-mno-sse \
 	-mno-mmx
 
