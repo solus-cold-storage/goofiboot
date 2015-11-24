@@ -31,7 +31,7 @@ AM_CFLAGS = \
 	-Wno-unused-parameter
 AM_LDFLAGS =
 
-EXTRA_DIST = autogen.sh README LICENSE
+EXTRA_DIST = autogen.sh README.rst LICENSE
 CLEANFILES =
 
 # ------------------------------------------------------------------------------
