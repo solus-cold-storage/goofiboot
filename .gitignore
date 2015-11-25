@@ -14,7 +14,7 @@
 /stub.so
 /stubx64.efi
 /stubia32.efi
-/test-disk
+/test-disk.img
 /*.stub
 
 Makefile
