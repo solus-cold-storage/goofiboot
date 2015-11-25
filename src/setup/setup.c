@@ -250,20 +250,14 @@ fail:
         return r;
 }
 
-/**
- * Gradually build up a valid path, which may point within an existing
- * tree, to mitigate any case sensitivity issues on FAT32
- */
-__attribute__ ((sentinel(0))) char *build_case_correct_path(const char *c, ...)
+char *build_case_correct_path_va(const char *c, va_list ap)
 {
-        va_list ap;
         char *p = NULL;
         char *root = NULL;
         struct stat st = {0};
         DIR *dirn = NULL;
         struct dirent *ent = NULL;
 
-        va_start(ap, c);
         p = (char*)c;
 
         while (p) {
@@ -310,7 +304,6 @@ __attribute__ ((sentinel(0))) char *build_case_correct_path(const char *c, ...)
                                 if (sav) {
                                         if (!asprintf(&t, "%s/%s", sav, ent->d_name)) {
                                                 fprintf(stderr, "Out of memory\n");
-                                                va_end(ap);
                                                 return NULL;
                                         }
                                         free(root);
@@ -322,7 +315,6 @@ __attribute__ ((sentinel(0))) char *build_case_correct_path(const char *c, ...)
                                         root = strdup(sav);
                                         if (!root) {
                                                 fprintf(stderr, "Out of memory\n");
-                                                va_end(ap);
                                                 return NULL;
                                         }
                                 }
@@ -339,10 +331,25 @@ clean:
                 p = va_arg(ap, char*);
         }
 
-        va_end(ap);
-
         return root;
 }
+
+/**
+ * Gradually build up a valid path, which may point within an existing
+ * tree, to mitigate any case sensitivity issues on FAT32
+ */
+__attribute__ ((sentinel(0))) char *build_case_correct_path(const char *c, ...)
+{
+        va_list ap;
+
+        char *ret = NULL;
+        va_start(ap, c);
+        ret = build_case_correct_path_va(c, ap);
+        va_end(ap);
+
+        return ret;
+}
+
 
 /* search for "#### LoaderInfo: goofiboot 31 ####" string inside the binary */
 static int get_file_version(FILE *f, char **v) {
@@ -787,10 +794,15 @@ static char* strupper(char *s) {
         return s;
 }
 
-static int mkdir_one(const char *prefix, const char *suffix) {
-        char *p;
+__attribute__((sentinel(0))) static int mkdir_one(const char *c, ...) {
+        char *p = NULL;
+        va_list ap;
 
-        if (asprintf(&p, "%s/%s", prefix, suffix) < 0) {
+        va_start(ap, c);
+        p = build_case_correct_path_va(c, ap);
+        va_end(ap);
+
+        if (!p) {
                 fprintf(stderr, "Out of memory.\n");
                 return -ENOMEM;
         }
@@ -811,23 +823,23 @@ static int mkdir_one(const char *prefix, const char *suffix) {
 static int create_dirs(const char *esp_path) {
         int r;
 
-        r = mkdir_one(esp_path, "EFI");
+        r = mkdir_one(esp_path, "EFI", NULL);
         if (r < 0)
                 return r;
 
-        r = mkdir_one(esp_path, "EFI/goofiboot");
+        r = mkdir_one(esp_path, "EFI", "goofiboot", NULL);
         if (r < 0)
                 return r;
 
-        r = mkdir_one(esp_path, "EFI/Boot");
+        r = mkdir_one(esp_path, "EFI", "Boot", NULL);
         if (r < 0)
                 return r;
 
-        r = mkdir_one(esp_path, "loader");
+        r = mkdir_one(esp_path, "loader", NULL);
         if (r < 0)
                 return r;
 
-        r = mkdir_one(esp_path, "loader/entries");
+        r = mkdir_one(esp_path, "loader", "entries", NULL);
         if (r < 0)
                 return r;
 
@@ -844,7 +856,7 @@ static int copy_one_file(const char *esp_path, const char *name, bool force) {
                 goto finish;
         }
 
-        if (asprintf(&q, "%s/EFI/goofiboot/%s", esp_path, name) < 0) {
+        if (!(q = build_case_correct_path(esp_path, "EFI", "goofiboot", name, NULL))) {
                 fprintf(stderr, "Out of memory.\n");
                 r = -ENOMEM;
                 goto finish;
@@ -856,7 +868,7 @@ static int copy_one_file(const char *esp_path, const char *name, bool force) {
                 int k;
 
                 /* Create the EFI default boot loader name (specified for removable devices) */
-                if (asprintf(&v, "%s/EFI/Boot/%s", esp_path, name + 5) < 0) {
+                if (!(v = build_case_correct_path(esp_path, "EFI", "Boot", name+5, NULL))) {
                         fprintf(stderr, "Out of memory.\n");
                         r = -ENOMEM;
                         goto finish;
@@ -1142,7 +1154,7 @@ static int remove_boot_efi(const char *esp_path) {
         DIR *d = NULL;
         int r = 0, c = 0;
 
-        if (asprintf(&p, "%s/EFI/Boot", esp_path) < 0) {
+        if (!(p = build_case_correct_path(esp_path, "EFI", "Boot", NULL))) {
                 fprintf(stderr, "Out of memory.\n");
                 return -ENOMEM;
         }
@@ -1222,10 +1234,15 @@ finish:
         return r;
 }
 
-static int rmdir_one(const char *prefix, const char *suffix) {
-        char *p;
+static int rmdir_one(const char *prefix, ...) {
+        char *p = NULL;
+        va_list ap;
 
-        if (asprintf(&p, "%s/%s", prefix, suffix) < 0) {
+        va_start(ap, prefix);
+        p = build_case_correct_path_va(prefix, ap);
+        va_end(ap);
+
+        if (!p) {
                 fprintf(stderr, "Out of memory.\n");
                 return -ENOMEM;
         }
@@ -1248,7 +1265,7 @@ static int remove_binaries(const char *esp_path) {
         char *p;
         int r, q;
 
-        if (asprintf(&p, "%s/EFI/goofiboot", esp_path) < 0) {
+        if (!(p = build_case_correct_path(esp_path, "EFI", "goofiboot", NULL))) {
                 fprintf(stderr, "Out of memory.\n");
                 return -ENOMEM;
         }
@@ -1260,23 +1277,23 @@ static int remove_binaries(const char *esp_path) {
         if (q < 0 && r == 0)
                 r = q;
 
-        q = rmdir_one(esp_path, "loader/entries");
+        q = rmdir_one(esp_path, "loader", "entries", NULL);
         if (q < 0 && r == 0)
                 r = q;
 
-        q = rmdir_one(esp_path, "loader");
+        q = rmdir_one(esp_path, "loader", NULL);
         if (q < 0 && r == 0)
                 r = q;
 
-        q = rmdir_one(esp_path, "EFI/Boot");
+        q = rmdir_one(esp_path, "EFI", "Boot", NULL);
         if (q < 0 && r == 0)
                 r = q;
 
-        q = rmdir_one(esp_path, "EFI/goofiboot");
+        q = rmdir_one(esp_path, "EFI", "goofiboot", NULL);
         if (q < 0 && r == 0)
                 r = q;
 
-        q = rmdir_one(esp_path, "EFI");
+        q = rmdir_one(esp_path, "EFI", NULL);
         if (q < 0 && r == 0)
                 r = q;
 
