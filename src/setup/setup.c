@@ -37,6 +37,8 @@
 #include <ftw.h>
 #include <stdbool.h>
 #include <blkid.h>
+#include <stdarg.h>
+#include <libgen.h>
 
 #include "efivars.h"
 #include "common.h"
@@ -246,6 +248,96 @@ fail:
         if (b)
                 blkid_free_probe(b);
         return r;
+}
+
+__attribute__ ((sentinel(0))) char *build_insensitive_path(char *c, ...)
+{
+        va_list ap;
+        char *p = NULL;
+        char *root = NULL;
+        struct stat st = {0};
+        DIR *dirn = NULL;
+        struct dirent *ent = NULL;
+
+        va_start(ap, c);
+        p = c;
+
+        while (p) {
+                char *t = NULL;
+                char *sav = NULL;
+
+                if (!root) {
+                        root = strdup(p);
+                } else {
+                        sav = strdup(root);
+
+                        if (!asprintf(&t, "%s/%s", root, p)) {
+                                fprintf(stderr, "Out of memory\n");
+                                va_end(ap);
+                                return NULL;
+                        }
+                        free(root);
+                        root = t;
+                        t = NULL;
+                }
+
+                char *dirp = strdup(root);
+                char *dir = dirname(dirp);
+
+                if (stat(dir, &st) != 0) {
+                        goto clean;
+                }
+                if (!S_ISDIR(st.st_mode)) {
+                        goto clean;
+                }
+                /* Iterate the directory and find the case insensitive name, using
+                 * this if it exists. Otherwise continue with the non existent
+                 * path
+                 */
+                dirn = opendir(dir);
+                if (!dirn) {
+                        goto clean;
+                }
+                while ((ent = readdir(dirn)) != NULL) {
+                        if (strncmp(ent->d_name, ".", 1) == 0 || strncmp(ent->d_name, "..", 2) == 0) {
+                                continue;
+                        }
+                        if (strcasecmp(ent->d_name, p) == 0) {
+                                if (sav) {
+                                        if (!asprintf(&t, "%s/%s", sav, ent->d_name)) {
+                                                fprintf(stderr, "Out of memory\n");
+                                                va_end(ap);
+                                                return NULL;
+                                        }
+                                        free(root);
+                                        root = t;
+                                        t = NULL;
+                                } else {
+                                        free(root);
+                                        root = NULL;
+                                        root = strdup(sav);
+                                        if (!root) {
+                                                fprintf(stderr, "Out of memory\n");
+                                                va_end(ap);
+                                                return NULL;
+                                        }
+                                }
+                                break;
+                        }
+                }
+                closedir(dirn);
+clean:
+
+                free(dirp);
+                if (sav) {
+                        free(sav);
+                }
+                p = va_arg(ap, char*);
+        }
+
+        va_end(ap);
+
+        return root;
 }
 
 /* search for "#### LoaderInfo: goofiboot 31 ####" string inside the binary */
