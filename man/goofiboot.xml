@@ -116,6 +116,12 @@
                                 <listitem><para>Do not touch the EFI boot
                                 variables.</para></listitem>
                         </varlistentry>
+
+                        <varlistentry>
+                                <term><option>--force</option></term>
+                                <listitem><para>Force install,remove,update
+                                even if ESP validation fails.</para></listitem>
+                        </varlistentry>
                 </variablelist>
         </refsect1>
 
