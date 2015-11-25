@@ -250,7 +250,11 @@ fail:
         return r;
 }
 
-__attribute__ ((sentinel(0))) char *build_insensitive_path(const char *c, ...)
+/**
+ * Gradually build up a valid path, which may point within an existing
+ * tree, to mitigate any case sensitivity issues on FAT32
+ */
+__attribute__ ((sentinel(0))) char *build_case_correct_path(const char *c, ...)
 {
         va_list ap;
         char *p = NULL;
@@ -470,8 +474,8 @@ static int status_binaries(const char *esp_path, uint8_t partition[16]) {
                partition[0], partition[1], partition[2], partition[3], partition[4], partition[5], partition[6], partition[7],
                partition[8], partition[9], partition[10], partition[11], partition[12], partition[13], partition[14], partition[15]);
 
-        /* TODO: Split the short path automatically so the display is case insensitive too */
-        goofi_path = build_insensitive_path(esp_path, "EFI", "goofiboot", NULL);
+        /* TODO: Split the short path automatically so the display is case-correct too */
+        goofi_path = build_case_correct_path(esp_path, "EFI", "goofiboot", NULL);
         r = enumerate_binaries(goofi_path, "EFI/goofiboot", NULL);
         free(goofi_path);
         if (r == 0)
@@ -479,7 +483,7 @@ static int status_binaries(const char *esp_path, uint8_t partition[16]) {
         else if (r < 0)
                 return r;
 
-        path = build_insensitive_path(esp_path, "EFI", "Boot", NULL);
+        path = build_case_correct_path(esp_path, "EFI", "Boot", NULL);
         r = enumerate_binaries(path, "EFI/Boot", "boot");
         free(path);
         if (r == 0)
