@@ -250,7 +250,7 @@ fail:
         return r;
 }
 
-__attribute__ ((sentinel(0))) char *build_insensitive_path(char *c, ...)
+__attribute__ ((sentinel(0))) char *build_insensitive_path(const char *c, ...)
 {
         va_list ap;
         char *p = NULL;
@@ -260,7 +260,7 @@ __attribute__ ((sentinel(0))) char *build_insensitive_path(char *c, ...)
         struct dirent *ent = NULL;
 
         va_start(ap, c);
-        p = c;
+        p = (char*)c;
 
         while (p) {
                 char *t = NULL;
@@ -387,26 +387,20 @@ finish:
         return r;
 }
 
-static int enumerate_binaries(const char *esp_path, const char *path, const char *prefix) {
+static int enumerate_binaries(const char *full_path, const char *short_path, const char *prefix) {
         struct dirent *de;
-        char *p = NULL, *q = NULL;
+        char *q = NULL;
         DIR *d = NULL;
         int r = 0, c = 0;
 
-        if (asprintf(&p, "%s/%s", esp_path, path) < 0) {
-                fprintf(stderr, "Out of memory.\n");
-                r = -ENOMEM;
-                goto finish;
-        }
-
-        d = opendir(p);
+        d = opendir(full_path);
         if (!d) {
                 if (errno == ENOENT) {
                         r = 0;
                         goto finish;
                 }
 
-                fprintf(stderr, "Failed to read %s: %m\n", p);
+                fprintf(stderr, "Failed to read %s: %m\n", full_path);
                 r = -errno;
                 goto finish;
         }
@@ -428,7 +422,7 @@ static int enumerate_binaries(const char *esp_path, const char *path, const char
 
                 free(q);
                 q = NULL;
-                if (asprintf(&q, "%s/%s/%s", esp_path, path, de->d_name) < 0) {
+                if (asprintf(&q, "%s/%s", full_path, de->d_name) < 0) {
                         fprintf(stderr, "Out of memory.\n");
                         r = -ENOMEM;
                         goto finish;
@@ -448,9 +442,9 @@ static int enumerate_binaries(const char *esp_path, const char *path, const char
                         goto finish;
 
                 if (r > 0)
-                        printf("         File: └─/%s/%s (%s)\n", path, de->d_name, v);
+                        printf("         File: └─/%s/%s (%s)\n", short_path, de->d_name, v);
                 else
-                        printf("         File: └─/%s/%s\n", path, de->d_name);
+                        printf("         File: └─/%s/%s\n", short_path, de->d_name);
 
                 c++;
                 free(v);
@@ -462,13 +456,13 @@ finish:
         if (d)
                 closedir(d);
 
-        free(p);
         free(q);
         return r;
 }
 
 static int status_binaries(const char *esp_path, uint8_t partition[16]) {
         int r;
+        char *path = NULL, *goofi_path = NULL;
 
         printf("Boot Loader Binaries:\n");
 
@@ -476,13 +470,18 @@ static int status_binaries(const char *esp_path, uint8_t partition[16]) {
                partition[0], partition[1], partition[2], partition[3], partition[4], partition[5], partition[6], partition[7],
                partition[8], partition[9], partition[10], partition[11], partition[12], partition[13], partition[14], partition[15]);
 
-        r = enumerate_binaries(esp_path, "EFI/goofiboot", NULL);
+        /* TODO: Split the short path automatically so the display is case insensitive too */
+        goofi_path = build_insensitive_path(esp_path, "EFI", "goofiboot", NULL);
+        r = enumerate_binaries(goofi_path, "EFI/goofiboot", NULL);
+        free(goofi_path);
         if (r == 0)
                 fprintf(stderr, "Goofiboot not installed in ESP.\n");
         else if (r < 0)
                 return r;
 
-        r = enumerate_binaries(esp_path, "EFI/Boot", "boot");
+        path = build_insensitive_path(esp_path, "EFI", "Boot", NULL);
+        r = enumerate_binaries(path, "EFI/Boot", "boot");
+        free(path);
         if (r == 0)
                 fprintf(stderr, "No default/fallback boot loader installed in ESP.\n");
         else if (r < 0)
