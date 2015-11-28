@@ -39,3 +39,6 @@ missing
 
 # wanted files
 !m4/arch.m4
+
+# dist
+goofiboot-*.tar.xz
