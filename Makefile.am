@@ -20,7 +20,7 @@
 ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 AM_MAKEFLAGS = --no-print-directory
 
-goofibootlibdir = $(prefix)/lib/goofiboot
+goofibootlibdir = $(libdir)/goofiboot
 
 AM_CPPFLAGS = -include config.h -I$(top_srcdir)/src
 
