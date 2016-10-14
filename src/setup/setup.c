@@ -884,7 +884,7 @@ static char *strupper(char *s)
 
 __attribute__((sentinel(0))) static int mkdir_one(const char *c, ...)
 {
-        char *p = NULL;
+        autofree(char) *p = NULL;
         va_list ap;
 
         va_start(ap, c);
@@ -905,7 +905,6 @@ __attribute__((sentinel(0))) static int mkdir_one(const char *c, ...)
         } else
                 fprintf(stderr, "Created %s.\n", p);
 
-        free(p);
         return 0;
 }
 
@@ -938,7 +937,9 @@ static int create_dirs(const char *esp_path)
 
 static int copy_one_file(const char *esp_path, const char *name, bool force)
 {
-        char *p = NULL, *q = NULL, *v = NULL;
+        autofree(char) *p = NULL;
+        autofree(char) *q = NULL;
+        autofree(char) *v = NULL;
         int r;
 
         if (asprintf(&p, GOOFIBOOTLIBDIR "/%s", name) < 0) {
@@ -974,9 +975,6 @@ static int copy_one_file(const char *esp_path, const char *name, bool force)
         }
 
 finish:
-        free(p);
-        free(q);
-        free(v);
         return r;
 }
 
@@ -1025,7 +1023,7 @@ static int install_binaries(const char *esp_path, bool force)
 
 static bool same_entry(uint16_t id, const uint8_t uuid[16], const char *path)
 {
-        char *opath = NULL;
+        autofree(char) *opath = NULL;
         uint8_t ouuid[16];
         int err;
         bool same = false;
@@ -1042,7 +1040,6 @@ static bool same_entry(uint16_t id, const uint8_t uuid[16], const char *path)
         same = true;
 
 finish:
-        free(opath);
         return same;
 }
 
@@ -1171,7 +1168,7 @@ static int remove_from_order(uint16_t slot)
 static int install_variables(const char *esp_path, uint32_t part, uint64_t pstart, uint64_t psize,
                              const uint8_t uuid[16], const char *path, bool first)
 {
-        char *p = NULL;
+        autofree(char) *p = NULL;
         uint16_t *options = NULL;
         uint16_t slot;
         int r;
@@ -1227,7 +1224,6 @@ static int install_variables(const char *esp_path, uint32_t part, uint64_t pstar
         insert_into_order(slot, first);
 
 finish:
-        free(p);
         free(options);
         return r;
 }
@@ -1344,7 +1340,7 @@ finish:
 
 static int rmdir_one(const char *prefix, ...)
 {
-        char *p = NULL;
+        autofree(char) *p = NULL;
         va_list ap;
 
         va_start(ap, prefix);
@@ -1359,19 +1355,18 @@ static int rmdir_one(const char *prefix, ...)
         if (rmdir(p) < 0) {
                 if (errno != ENOENT && errno != ENOTEMPTY) {
                         fprintf(stderr, "Failed to remove %s: %m\n", p);
-                        free(p);
                         return -errno;
                 }
-        } else
+        } else {
                 fprintf(stderr, "Removed %s.\n", p);
+        }
 
-        free(p);
         return 0;
 }
 
 static int remove_binaries(const char *esp_path)
 {
-        char *p;
+        autofree(char) *p = NULL;
         int r, q;
 
         if (!(p = build_case_correct_path(esp_path, "EFI", "goofiboot", NULL))) {
@@ -1380,7 +1375,6 @@ static int remove_binaries(const char *esp_path)
         }
 
         r = rm_rf(p);
-        free(p);
 
         q = remove_boot_efi(esp_path);
         if (q < 0 && r == 0)
@@ -1433,7 +1427,7 @@ static int remove_variables(const uint8_t uuid[16], const char *path, bool in_or
 
 static int install_loader_config(const char *esp_path)
 {
-        char *p = NULL;
+        autofree(char) *p = NULL;
         char line[64];
         char *machine = NULL;
         FILE *f;
@@ -1469,7 +1463,6 @@ static int install_loader_config(const char *esp_path)
                 fclose(f);
         }
 
-        free(p);
         return 0;
 }
 
