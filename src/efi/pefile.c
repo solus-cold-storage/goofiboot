@@ -17,58 +17,59 @@
 #include <efi.h>
 #include <efilib.h>
 
-#include "util.h"
 #include "pefile.h"
+#include "util.h"
 
 struct DosFileHeader {
-        UINT8   Magic[2];
-        UINT16  LastSize;
-        UINT16  nBlocks;
-        UINT16  nReloc;
-        UINT16  HdrSize;
-        UINT16  MinAlloc;
-        UINT16  MaxAlloc;
-        UINT16  ss;
-        UINT16  sp;
-        UINT16  Checksum;
-        UINT16  ip;
-        UINT16  cs;
-        UINT16  RelocPos;
-        UINT16  nOverlay;
-        UINT16  reserved[4];
-        UINT16  OEMId;
-        UINT16  OEMInfo;
-        UINT16  reserved2[10];
-        UINT32  ExeHeader;
+        UINT8 Magic[2];
+        UINT16 LastSize;
+        UINT16 nBlocks;
+        UINT16 nReloc;
+        UINT16 HdrSize;
+        UINT16 MinAlloc;
+        UINT16 MaxAlloc;
+        UINT16 ss;
+        UINT16 sp;
+        UINT16 Checksum;
+        UINT16 ip;
+        UINT16 cs;
+        UINT16 RelocPos;
+        UINT16 nOverlay;
+        UINT16 reserved[4];
+        UINT16 OEMId;
+        UINT16 OEMInfo;
+        UINT16 reserved2[10];
+        UINT32 ExeHeader;
 } __attribute__((packed));
 
-#define PE_HEADER_MACHINE_I386          0x014c
-#define PE_HEADER_MACHINE_X64           0x8664
+#define PE_HEADER_MACHINE_I386 0x014c
+#define PE_HEADER_MACHINE_X64 0x8664
 struct PeFileHeader {
-        UINT16  Machine;
-        UINT16  NumberOfSections;
-        UINT32  TimeDateStamp;
-        UINT32  PointerToSymbolTable;
-        UINT32  NumberOfSymbols;
-        UINT16  SizeOfOptionalHeader;
-        UINT16  Characteristics;
+        UINT16 Machine;
+        UINT16 NumberOfSections;
+        UINT32 TimeDateStamp;
+        UINT32 PointerToSymbolTable;
+        UINT32 NumberOfSymbols;
+        UINT16 SizeOfOptionalHeader;
+        UINT16 Characteristics;
 } __attribute__((packed));
 
 struct PeSectionHeader {
-        UINT8   Name[8];
-        UINT32  VirtualSize;
-        UINT32  VirtualAddress;
-        UINT32  SizeOfRawData;
-        UINT32  PointerToRawData;
-        UINT32  PointerToRelocations;
-        UINT32  PointerToLinenumbers;
-        UINT16  NumberOfRelocations;
-        UINT16  NumberOfLinenumbers;
-        UINT32  Characteristics;
+        UINT8 Name[8];
+        UINT32 VirtualSize;
+        UINT32 VirtualAddress;
+        UINT32 SizeOfRawData;
+        UINT32 PointerToRawData;
+        UINT32 PointerToRelocations;
+        UINT32 PointerToLinenumbers;
+        UINT16 NumberOfRelocations;
+        UINT16 NumberOfLinenumbers;
+        UINT32 Characteristics;
 } __attribute__((packed));
 
-
-EFI_STATUS pefile_locate_sections(EFI_FILE *dir, CHAR16 *path, CHAR8 **sections, UINTN *addrs, UINTN *offsets, UINTN *sizes) {
+EFI_STATUS pefile_locate_sections(EFI_FILE *dir, CHAR16 *path, CHAR8 **sections, UINTN *addrs,
+                                  UINTN *offsets, UINTN *sizes)
+{
         EFI_FILE_HANDLE handle;
         struct DosFileHeader dos;
         uint8_t magic[4];
@@ -125,8 +126,7 @@ EFI_STATUS pefile_locate_sections(EFI_FILE *dir, CHAR16 *path, CHAR8 **sections,
         }
 
         /* PE32+ Subsystem type */
-        if (pe.Machine != PE_HEADER_MACHINE_X64 &&
-            pe.Machine != PE_HEADER_MACHINE_I386) {
+        if (pe.Machine != PE_HEADER_MACHINE_X64 && pe.Machine != PE_HEADER_MACHINE_I386) {
                 err = EFI_LOAD_ERROR;
                 goto out;
         }
@@ -137,7 +137,11 @@ EFI_STATUS pefile_locate_sections(EFI_FILE *dir, CHAR16 *path, CHAR8 **sections,
         }
 
         /* the sections start directly after the headers */
-        err = uefi_call_wrapper(handle->SetPosition, 2, handle, dos.ExeHeader + sizeof(magic) + sizeof(pe) + pe.SizeOfOptionalHeader);
+        err =
+            uefi_call_wrapper(handle->SetPosition,
+                              2,
+                              handle,
+                              dos.ExeHeader + sizeof(magic) + sizeof(pe) + pe.SizeOfOptionalHeader);
         if (EFI_ERROR(err))
                 goto out;
 

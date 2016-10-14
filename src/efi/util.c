@@ -25,24 +25,30 @@
  * the (ESP)\loader\entries\<vendor>-<revision>.conf convention and the
  * associated EFI variables.
  */
-static const EFI_GUID loader_guid = { 0x4a67b082, 0x0a4c, 0x41cf, {0xb6, 0xc7, 0x44, 0x0b, 0x29, 0xbb, 0x8c, 0x4f} };
+static const EFI_GUID loader_guid = { 0x4a67b082,
+                                      0x0a4c,
+                                      0x41cf,
+                                      { 0xb6, 0xc7, 0x44, 0x0b, 0x29, 0xbb, 0x8c, 0x4f } };
 
 #ifdef __x86_64__
-UINT64 ticks_read(VOID) {
+UINT64 ticks_read(VOID)
+{
         UINT64 a, d;
-        __asm__ volatile ("rdtsc" : "=a" (a), "=d" (d));
+        __asm__ volatile("rdtsc" : "=a"(a), "=d"(d));
         return (d << 32) | a;
 }
 #else
-UINT64 ticks_read(VOID) {
+UINT64 ticks_read(VOID)
+{
         UINT64 val;
-        __asm__ volatile ("rdtsc" : "=A" (val));
+        __asm__ volatile("rdtsc" : "=A"(val));
         return val;
 }
 #endif
 
 /* count TSC ticks during a millisecond delay */
-UINT64 ticks_freq(VOID) {
+UINT64 ticks_freq(VOID)
+{
         UINT64 ticks_start, ticks_end;
 
         ticks_start = ticks_read();
@@ -52,7 +58,8 @@ UINT64 ticks_freq(VOID) {
         return (ticks_end - ticks_start) * 1000;
 }
 
-UINT64 time_usec(VOID) {
+UINT64 time_usec(VOID)
+{
         UINT64 ticks;
         static UINT64 freq;
 
@@ -69,19 +76,16 @@ UINT64 time_usec(VOID) {
         return 1000 * 1000 * ticks / freq;
 }
 
-EFI_STATUS parse_boolean(CHAR8 *v, BOOLEAN *b) {
-        if (strcmpa(v, (CHAR8 *)"1") == 0 ||
-            strcmpa(v, (CHAR8 *)"yes") == 0 ||
-            strcmpa(v, (CHAR8 *)"y") == 0 ||
-            strcmpa(v, (CHAR8 *)"true") == 0) {
+EFI_STATUS parse_boolean(CHAR8 *v, BOOLEAN *b)
+{
+        if (strcmpa(v, (CHAR8 *)"1") == 0 || strcmpa(v, (CHAR8 *)"yes") == 0 ||
+            strcmpa(v, (CHAR8 *)"y") == 0 || strcmpa(v, (CHAR8 *)"true") == 0) {
                 *b = TRUE;
                 return EFI_SUCCESS;
         }
 
-        if (strcmpa(v, (CHAR8 *)"0") == 0 ||
-            strcmpa(v, (CHAR8 *)"no") == 0 ||
-            strcmpa(v, (CHAR8 *)"n") == 0 ||
-            strcmpa(v, (CHAR8 *)"false") == 0) {
+        if (strcmpa(v, (CHAR8 *)"0") == 0 || strcmpa(v, (CHAR8 *)"no") == 0 ||
+            strcmpa(v, (CHAR8 *)"n") == 0 || strcmpa(v, (CHAR8 *)"false") == 0) {
                 *b = FALSE;
                 return EFI_SUCCESS;
         }
@@ -89,28 +93,37 @@ EFI_STATUS parse_boolean(CHAR8 *v, BOOLEAN *b) {
         return EFI_INVALID_PARAMETER;
 }
 
-EFI_STATUS efivar_set_raw(const EFI_GUID *vendor, CHAR16 *name, CHAR8 *buf, UINTN size, BOOLEAN persistent) {
+EFI_STATUS efivar_set_raw(const EFI_GUID *vendor, CHAR16 *name, CHAR8 *buf, UINTN size,
+                          BOOLEAN persistent)
+{
         UINT32 flags;
 
-        flags = EFI_VARIABLE_BOOTSERVICE_ACCESS|EFI_VARIABLE_RUNTIME_ACCESS;
+        flags = EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS;
         if (persistent)
                 flags |= EFI_VARIABLE_NON_VOLATILE;
 
         return uefi_call_wrapper(RT->SetVariable, 5, name, (EFI_GUID *)vendor, flags, size, buf);
 }
 
-EFI_STATUS efivar_set(CHAR16 *name, CHAR16 *value, BOOLEAN persistent) {
-        return efivar_set_raw(&loader_guid, name, (CHAR8 *)value, value ? (StrLen(value)+1) * sizeof(CHAR16) : 0, persistent);
+EFI_STATUS efivar_set(CHAR16 *name, CHAR16 *value, BOOLEAN persistent)
+{
+        return efivar_set_raw(&loader_guid,
+                              name,
+                              (CHAR8 *)value,
+                              value ? (StrLen(value) + 1) * sizeof(CHAR16) : 0,
+                              persistent);
 }
 
-EFI_STATUS efivar_set_int(CHAR16 *name, UINTN i, BOOLEAN persistent) {
+EFI_STATUS efivar_set_int(CHAR16 *name, UINTN i, BOOLEAN persistent)
+{
         CHAR16 str[32];
 
         SPrint(str, 32, L"%d", i);
         return efivar_set(name, str, persistent);
 }
 
-EFI_STATUS efivar_get(CHAR16 *name, CHAR16 **value) {
+EFI_STATUS efivar_get(CHAR16 *name, CHAR16 **value)
+{
         CHAR8 *buf;
         CHAR16 *val;
         UINTN size;
@@ -130,7 +143,8 @@ EFI_STATUS efivar_get(CHAR16 *name, CHAR16 **value) {
         return EFI_SUCCESS;
 }
 
-EFI_STATUS efivar_get_int(CHAR16 *name, UINTN *i) {
+EFI_STATUS efivar_get_int(CHAR16 *name, UINTN *i)
+{
         CHAR16 *val;
         EFI_STATUS err;
 
@@ -142,7 +156,8 @@ EFI_STATUS efivar_get_int(CHAR16 *name, UINTN *i) {
         return err;
 }
 
-EFI_STATUS efivar_get_raw(const EFI_GUID *vendor, CHAR16 *name, CHAR8 **buffer, UINTN *size) {
+EFI_STATUS efivar_get_raw(const EFI_GUID *vendor, CHAR16 *name, CHAR8 **buffer, UINTN *size)
+{
         CHAR8 *buf;
         UINTN l;
         EFI_STATUS err;
@@ -160,10 +175,10 @@ EFI_STATUS efivar_get_raw(const EFI_GUID *vendor, CHAR16 *name, CHAR8 **buffer, 
         } else
                 FreePool(buf);
         return err;
-
 }
 
-VOID efivar_set_time_usec(CHAR16 *name, UINT64 usec) {
+VOID efivar_set_time_usec(CHAR16 *name, UINT64 usec)
+{
         CHAR16 str[32];
 
         if (usec == 0)
@@ -175,7 +190,8 @@ VOID efivar_set_time_usec(CHAR16 *name, UINT64 usec) {
         efivar_set(name, str, FALSE);
 }
 
-static INTN utf8_to_16(CHAR8 *stra, CHAR16 *c) {
+static INTN utf8_to_16(CHAR8 *stra, CHAR16 *c)
+{
         CHAR16 unichar;
         UINTN len;
         UINTN i;
@@ -227,7 +243,8 @@ static INTN utf8_to_16(CHAR8 *stra, CHAR16 *c) {
         return len;
 }
 
-CHAR16 *stra_to_str(CHAR8 *stra) {
+CHAR16 *stra_to_str(CHAR8 *stra)
+{
         UINTN strlen;
         UINTN len;
         UINTN i;
@@ -255,7 +272,8 @@ CHAR16 *stra_to_str(CHAR8 *stra) {
         return str;
 }
 
-CHAR16 *stra_to_path(CHAR8 *stra) {
+CHAR16 *stra_to_path(CHAR8 *stra)
+{
         CHAR16 *str;
         UINTN strlen;
         UINTN len;
@@ -279,7 +297,7 @@ CHAR16 *stra_to_path(CHAR8 *stra) {
 
                 if (str[strlen] == '/')
                         str[strlen] = '\\';
-                if (str[strlen] == '\\' && str[strlen-1] == '\\') {
+                if (str[strlen] == '\\' && str[strlen - 1] == '\\') {
                         /* skip double slashes */
                         i += utf8len;
                         continue;
@@ -292,7 +310,8 @@ CHAR16 *stra_to_path(CHAR8 *stra) {
         return str;
 }
 
-CHAR8 *strchra(CHAR8 *s, CHAR8 c) {
+CHAR8 *strchra(CHAR8 *s, CHAR8 c)
+{
         do {
                 if (*s == c)
                         return s;
@@ -300,7 +319,8 @@ CHAR8 *strchra(CHAR8 *s, CHAR8 c) {
         return NULL;
 }
 
-INTN file_read(EFI_FILE_HANDLE dir, CHAR16 *name, UINTN off, UINTN size, CHAR8 **content) {
+INTN file_read(EFI_FILE_HANDLE dir, CHAR16 *name, UINTN off, UINTN size, CHAR8 **content)
+{
         EFI_FILE_HANDLE handle;
         CHAR8 *buf;
         UINTN buflen;
@@ -315,7 +335,7 @@ INTN file_read(EFI_FILE_HANDLE dir, CHAR16 *name, UINTN off, UINTN size, CHAR8 *
                 EFI_FILE_INFO *info;
 
                 info = LibFileInfo(handle);
-                buflen = info->FileSize+1;
+                buflen = info->FileSize + 1;
                 FreePool(info);
         } else
                 buflen = size;

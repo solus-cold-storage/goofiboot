@@ -20,25 +20,27 @@
   along with goofiboot; If not, see <http://www.gnu.org/licenses/>.
 ***/
 
-#include <unistd.h>
-#include <stdlib.h>
-#include <sys/stat.h>
-#include <errno.h>
 #include <assert.h>
-#include <stdio.h>
-#include <fcntl.h>
-#include <string.h>
-#include <stddef.h>
-#include <dirent.h>
 #include <ctype.h>
+#include <dirent.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "efivars.h"
 
-bool is_efi_boot(void) {
+bool is_efi_boot(void)
+{
         return access("/sys/firmware/efi", F_OK) >= 0;
 }
 
-static int read_flag(const char *varname) {
+static int read_flag(const char *varname)
+{
         int r;
         void *v;
         size_t s;
@@ -60,20 +62,18 @@ finish:
         return r;
 }
 
-int is_efi_secure_boot(void) {
+int is_efi_secure_boot(void)
+{
         return read_flag("SecureBoot");
 }
 
-int is_efi_secure_boot_setup_mode(void) {
+int is_efi_secure_boot_setup_mode(void)
+{
         return read_flag("SetupMode");
 }
 
-int efi_get_variable(
-                const uint8_t vendor[16],
-                const char *name,
-                void **value,
-                size_t *size) {
-
+int efi_get_variable(const uint8_t vendor[16], const char *name, void **value, size_t *size)
+{
         int fd = -1;
         char *p = NULL;
         uint32_t a;
@@ -87,13 +87,28 @@ int efi_get_variable(
         assert(size);
 
         if (asprintf(&p,
-                     "/sys/firmware/efi/efivars/%s-%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+                     "/sys/firmware/efi/efivars/"
+                     "%s-%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
                      name,
-                     vendor[0], vendor[1], vendor[2], vendor[3], vendor[4], vendor[5], vendor[6], vendor[7],
-                     vendor[8], vendor[9], vendor[10], vendor[11], vendor[12], vendor[13], vendor[14], vendor[15]) < 0)
+                     vendor[0],
+                     vendor[1],
+                     vendor[2],
+                     vendor[3],
+                     vendor[4],
+                     vendor[5],
+                     vendor[6],
+                     vendor[7],
+                     vendor[8],
+                     vendor[9],
+                     vendor[10],
+                     vendor[11],
+                     vendor[12],
+                     vendor[13],
+                     vendor[14],
+                     vendor[15]) < 0)
                 return -ENOMEM;
 
-        fd = open(p, O_RDONLY|O_NOCTTY|O_CLOEXEC);
+        fd = open(p, O_RDONLY | O_NOCTTY | O_CLOEXEC);
         if (fd < 0) {
                 r = -errno;
                 goto finish;
@@ -107,7 +122,7 @@ int efi_get_variable(
                 r = -EIO;
                 goto finish;
         }
-        if (st.st_size > 4*1024*1024 + 4) {
+        if (st.st_size > 4 * 1024 * 1024 + 4) {
                 r = -E2BIG;
                 goto finish;
         }
@@ -128,24 +143,24 @@ int efi_get_variable(
                 goto finish;
         }
 
-        n = read(fd, b, (size_t) st.st_size - 4);
+        n = read(fd, b, (size_t)st.st_size - 4);
         if (n < 0) {
                 free(b);
                 r = errno;
                 goto finish;
         }
-        if (n != (ssize_t) st.st_size - 4) {
+        if (n != (ssize_t)st.st_size - 4) {
                 free(b);
                 r = -EIO;
                 goto finish;
         }
 
         /* Always NUL terminate (2 bytes, to protect UTF-16) */
-        ((char*) b)[st.st_size - 4] = 0;
-        ((char*) b)[st.st_size - 4 + 1] = 0;
+        ((char *)b)[st.st_size - 4] = 0;
+        ((char *)b)[st.st_size - 4 + 1] = 0;
 
         *value = b;
-        *size = (size_t) st.st_size - 4;
+        *size = (size_t)st.st_size - 4;
         r = 0;
 
 finish:
@@ -155,12 +170,8 @@ finish:
         return r;
 }
 
-int efi_set_variable(
-                const uint8_t vendor[16],
-                const char *name,
-                const void *value,
-                size_t size) {
-
+int efi_set_variable(const uint8_t vendor[16], const char *name, const void *value, size_t size)
+{
         struct var {
                 uint32_t attr;
                 char buf[];
@@ -173,10 +184,25 @@ int efi_set_variable(
         assert(name);
 
         if (asprintf(&p,
-                     "/sys/firmware/efi/efivars/%s-%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+                     "/sys/firmware/efi/efivars/"
+                     "%s-%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
                      name,
-                     vendor[0], vendor[1], vendor[2], vendor[3], vendor[4], vendor[5], vendor[6], vendor[7],
-                     vendor[8], vendor[9], vendor[10], vendor[11], vendor[12], vendor[13], vendor[14], vendor[15]) < 0)
+                     vendor[0],
+                     vendor[1],
+                     vendor[2],
+                     vendor[3],
+                     vendor[4],
+                     vendor[5],
+                     vendor[6],
+                     vendor[7],
+                     vendor[8],
+                     vendor[9],
+                     vendor[10],
+                     vendor[11],
+                     vendor[12],
+                     vendor[13],
+                     vendor[14],
+                     vendor[15]) < 0)
                 return -ENOMEM;
 
         if (size == 0) {
@@ -184,7 +210,7 @@ int efi_set_variable(
                 goto finish;
         }
 
-        fd = open(p, O_WRONLY|O_CREAT|O_NOCTTY|O_CLOEXEC, 0644);
+        fd = open(p, O_WRONLY | O_CREAT | O_NOCTTY | O_CLOEXEC, 0644);
         if (fd < 0) {
                 r = -errno;
                 goto finish;
@@ -196,7 +222,8 @@ int efi_set_variable(
                 goto finish;
         }
 
-        buf->attr = EFI_VARIABLE_NON_VOLATILE|EFI_VARIABLE_BOOTSERVICE_ACCESS|EFI_VARIABLE_RUNTIME_ACCESS;
+        buf->attr = EFI_VARIABLE_NON_VOLATILE | EFI_VARIABLE_BOOTSERVICE_ACCESS |
+                    EFI_VARIABLE_RUNTIME_ACCESS;
         memcpy(buf->buf, value, size);
 
         r = write(fd, buf, sizeof(uint32_t) + size);
@@ -218,7 +245,8 @@ finish:
         return r;
 }
 
-int efi_get_variable_string(const uint8_t vendor[16], const char *name, char **p) {
+int efi_get_variable_string(const uint8_t vendor[16], const char *name, char **p)
+{
         void *s = NULL;
         size_t ss;
         char *x;
@@ -237,13 +265,14 @@ int efi_get_variable_string(const uint8_t vendor[16], const char *name, char **p
         return 0;
 }
 
-static size_t utf16_size(const uint16_t *s) {
+static size_t utf16_size(const uint16_t *s)
+{
         size_t l = 0;
 
         while (s[l] > 0)
                 l++;
 
-        return (l+1) * sizeof(uint16_t);
+        return (l + 1) * sizeof(uint16_t);
 }
 
 struct guid {
@@ -253,7 +282,8 @@ struct guid {
         uint8_t u4[8];
 } __attribute__((packed));
 
-static void efi_guid_to_id128(const void *guid, uint8_t *bytes) {
+static void efi_guid_to_id128(const void *guid, uint8_t *bytes)
+{
         const struct guid *uuid = guid;
 
         bytes[0] = (uuid->u1 >> 24) & 0xff;
@@ -264,19 +294,21 @@ static void efi_guid_to_id128(const void *guid, uint8_t *bytes) {
         bytes[5] = (uuid->u2) & 0xff;
         bytes[6] = (uuid->u3 >> 8) & 0xff;
         bytes[7] = (uuid->u3) & 0xff;
-        memcpy(bytes+8, uuid->u4, sizeof(uuid->u4));
+        memcpy(bytes + 8, uuid->u4, sizeof(uuid->u4));
 }
 
-static void id128_to_efi_guid(const uint8_t *bytes, void *guid) {
+static void id128_to_efi_guid(const uint8_t *bytes, void *guid)
+{
         struct guid *uuid = guid;
 
         uuid->u1 = bytes[0] << 24 | bytes[1] << 16 | bytes[2] << 8 | bytes[3];
         uuid->u2 = bytes[4] << 8 | bytes[5];
         uuid->u3 = bytes[6] << 8 | bytes[7];
-        memcpy(uuid->u4, bytes+8, sizeof(uuid->u4));
+        memcpy(uuid->u4, bytes + 8, sizeof(uuid->u4));
 }
 
-char *tilt_backslashes(char *s) {
+char *tilt_backslashes(char *s)
+{
         char *p;
 
         for (p = s; *p; p++)
@@ -286,7 +318,8 @@ char *tilt_backslashes(char *s) {
         return s;
 }
 
-uint16_t *tilt_slashes(uint16_t *s) {
+uint16_t *tilt_slashes(uint16_t *s)
+{
         uint16_t *p;
 
         for (p = s; *p; p++)
@@ -296,14 +329,14 @@ uint16_t *tilt_slashes(uint16_t *s) {
         return s;
 }
 
-#define LOAD_OPTION_ACTIVE            0x00000001
-#define MEDIA_DEVICE_PATH                   0x04
-#define MEDIA_HARDDRIVE_DP                  0x01
-#define MEDIA_FILEPATH_DP                   0x04
-#define SIGNATURE_TYPE_GUID                 0x02
+#define LOAD_OPTION_ACTIVE 0x00000001
+#define MEDIA_DEVICE_PATH 0x04
+#define MEDIA_HARDDRIVE_DP 0x01
+#define MEDIA_FILEPATH_DP 0x04
+#define SIGNATURE_TYPE_GUID 0x02
 #define MBR_TYPE_EFI_PARTITION_TABLE_HEADER 0x02
-#define END_DEVICE_PATH_TYPE                0x7f
-#define END_ENTIRE_DEVICE_PATH_SUBTYPE      0xff
+#define END_DEVICE_PATH_TYPE 0x7f
+#define END_ENTIRE_DEVICE_PATH_SUBTYPE 0xff
 
 struct boot_option {
         uint32_t attr;
@@ -330,7 +363,8 @@ struct device_path {
         };
 } __attribute__((packed));
 
-int efi_get_boot_option(uint16_t id, char **title, uint8_t part_uuid[16], char **path, bool *active) {
+int efi_get_boot_option(uint16_t id, char **title, uint8_t part_uuid[16], char **path, bool *active)
+{
         char boot_id[9];
         uint8_t *buf = NULL;
         size_t l;
@@ -342,7 +376,7 @@ int efi_get_boot_option(uint16_t id, char **title, uint8_t part_uuid[16], char *
         int err;
 
         snprintf(boot_id, sizeof(boot_id), "Boot%04X", id);
-        err = efi_get_variable(EFI_VENDOR_GLOBAL, boot_id, (void **) &buf, &l);
+        err = efi_get_variable(EFI_VENDOR_GLOBAL, boot_id, (void **)&buf, &l);
         if (err < 0)
                 return err;
         if (l < sizeof(struct boot_option)) {
@@ -350,7 +384,7 @@ int efi_get_boot_option(uint16_t id, char **title, uint8_t part_uuid[16], char *
                 goto err;
         }
 
-        header = (struct boot_option *) buf;
+        header = (struct boot_option *)buf;
         title_size = utf16_size(header->title);
         if (title_size > l - offsetof(struct boot_option, title)) {
                 err = -EINVAL;
@@ -376,8 +410,10 @@ int efi_get_boot_option(uint16_t id, char **title, uint8_t part_uuid[16], char *
                         if (dpath->length < 4)
                                 break;
 
-                        /* Type 0x7F – End of Hardware Device Path, Sub-Type 0xFF – End Entire Device Path */
-                        if (dpath->type == END_DEVICE_PATH_TYPE && dpath->sub_type == END_ENTIRE_DEVICE_PATH_SUBTYPE)
+                        /* Type 0x7F – End of Hardware Device Path, Sub-Type 0xFF – End Entire
+                         * Device Path */
+                        if (dpath->type == END_DEVICE_PATH_TYPE &&
+                            dpath->sub_type == END_ENTIRE_DEVICE_PATH_SUBTYPE)
                                 break;
 
                         dnext += dpath->length;
@@ -398,7 +434,7 @@ int efi_get_boot_option(uint16_t id, char **title, uint8_t part_uuid[16], char *
                         }
 
                         if (dpath->sub_type == MEDIA_FILEPATH_DP) {
-                                p = utf16_to_utf8(dpath->path, dpath->length-4);
+                                p = utf16_to_utf8(dpath->path, dpath->length - 4);
                                 tilt_backslashes(p);
                                 continue;
                         }
@@ -430,7 +466,8 @@ err:
         return err;
 }
 
-static void to_utf16(uint16_t *dest, const char *src) {
+static void to_utf16(uint16_t *dest, const char *src)
+{
         int i;
 
         for (i = 0; src[i] != '\0'; i++)
@@ -438,10 +475,9 @@ static void to_utf16(uint16_t *dest, const char *src) {
         dest[i] = '\0';
 }
 
-int efi_add_boot_option(uint16_t id, const char *title,
-                        uint32_t part, uint64_t pstart, uint64_t psize,
-                        const uint8_t part_uuid[16],
-                        const char *path) {
+int efi_add_boot_option(uint16_t id, const char *title, uint32_t part, uint64_t pstart,
+                        uint64_t psize, const uint8_t part_uuid[16], const char *path)
+{
         char boot_id[9];
         char *buf;
         size_t size;
@@ -451,12 +487,12 @@ int efi_add_boot_option(uint16_t id, const char *title,
         struct device_path *devicep;
         int err;
 
-        title_len = (strlen(title)+1) * 2;
-        path_len = (strlen(path)+1) * 2;
+        title_len = (strlen(title) + 1) * 2;
+        path_len = (strlen(path) + 1) * 2;
 
-        buf = calloc(sizeof(struct boot_option) + title_len +
-                     sizeof(struct drive_path) +
-                     sizeof(struct device_path) + path_len, 1);
+        buf = calloc(sizeof(struct boot_option) + title_len + sizeof(struct drive_path) +
+                         sizeof(struct device_path) + path_len,
+                     1);
         if (!buf) {
                 err = -ENOMEM;
                 goto finish;
@@ -478,7 +514,7 @@ int efi_add_boot_option(uint16_t id, const char *title,
         devicep->length = offsetof(struct device_path, drive) + sizeof(struct drive_path);
         devicep->drive.part_nr = part;
         devicep->drive.part_start = pstart;
-        devicep->drive.part_size =  psize;
+        devicep->drive.part_size = psize;
         devicep->drive.signature_type = SIGNATURE_TYPE_GUID;
         devicep->drive.mbr_type = MBR_TYPE_EFI_PARTITION_TABLE_HEADER;
         id128_to_efi_guid(part_uuid, devicep->drive.signature);
@@ -508,14 +544,16 @@ finish:
         return err;
 }
 
-int efi_remove_boot_option(uint16_t id) {
+int efi_remove_boot_option(uint16_t id)
+{
         char boot_id[9];
 
         snprintf(boot_id, sizeof(boot_id), "Boot%04X", id);
         return efi_set_variable(EFI_VENDOR_GLOBAL, boot_id, NULL, 0);
 }
 
-int efi_get_boot_order(uint16_t **order) {
+int efi_get_boot_order(uint16_t **order)
+{
         void *buf;
         size_t l;
         int r;
@@ -535,14 +573,16 @@ int efi_get_boot_order(uint16_t **order) {
         }
 
         *order = buf;
-        return (int) (l / sizeof(uint16_t));
+        return (int)(l / sizeof(uint16_t));
 }
 
-int efi_set_boot_order(uint16_t *order, size_t n) {
+int efi_set_boot_order(uint16_t *order, size_t n)
+{
         return efi_set_variable(EFI_VENDOR_GLOBAL, "BootOrder", order, n * sizeof(uint16_t));
 }
 
-static int boot_id_hex(const char s[4]) {
+static int boot_id_hex(const char s[4])
+{
         int i;
         int id = 0;
 
@@ -557,13 +597,15 @@ static int boot_id_hex(const char s[4]) {
         return id;
 }
 
-static int cmp_uint16(const void *_a, const void *_b) {
+static int cmp_uint16(const void *_a, const void *_b)
+{
         const uint16_t *a = _a, *b = _b;
 
         return (int)*a - (int)*b;
 }
 
-int efi_get_boot_options(uint16_t **options) {
+int efi_get_boot_options(uint16_t **options)
+{
         DIR *dir;
         struct dirent *de;
         uint16_t *list = NULL;
@@ -610,18 +652,19 @@ int efi_get_boot_options(uint16_t **options) {
         return count;
 }
 
-char *utf16_to_utf8(const void *s, size_t length) {
+char *utf16_to_utf8(const void *s, size_t length)
+{
         char *r;
         const uint8_t *f;
         uint8_t *t;
 
-        r = malloc((length*3+1)/2 + 1);
+        r = malloc((length * 3 + 1) / 2 + 1);
         if (!r)
                 return NULL;
 
-        t = (uint8_t*) r;
+        t = (uint8_t *)r;
 
-        for (f = s; f < (const uint8_t*) s + length; f += 2) {
+        for (f = s; f < (const uint8_t *)s + length; f += 2) {
                 uint16_t c;
 
                 c = (f[1] << 8) | f[0];
@@ -630,14 +673,14 @@ char *utf16_to_utf8(const void *s, size_t length) {
                         *t = 0;
                         return r;
                 } else if (c < 0x80) {
-                        *(t++) = (uint8_t) c;
+                        *(t++) = (uint8_t)c;
                 } else if (c < 0x800) {
-                        *(t++) = (uint8_t) (0xc0 | (c >> 6));
-                        *(t++) = (uint8_t) (0x80 | (c & 0x3f));
+                        *(t++) = (uint8_t)(0xc0 | (c >> 6));
+                        *(t++) = (uint8_t)(0x80 | (c & 0x3f));
                 } else {
-                        *(t++) = (uint8_t) (0xe0 | (c >> 12));
-                        *(t++) = (uint8_t) (0x80 | ((c >> 6) & 0x3f));
-                        *(t++) = (uint8_t) (0x80 | (c & 0x3f));
+                        *(t++) = (uint8_t)(0xe0 | (c >> 12));
+                        *(t++) = (uint8_t)(0x80 | ((c >> 6) & 0x3f));
+                        *(t++) = (uint8_t)(0x80 | (c & 0x3f));
                 }
         }
 

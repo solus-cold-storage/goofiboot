@@ -20,34 +20,35 @@
   along with goofiboot; If not, see <http://www.gnu.org/licenses/>.
 ***/
 
-#include <stdio.h>
-#include <getopt.h>
-#include <errno.h>
-#include <stdlib.h>
 #include <assert.h>
-#include <sys/statfs.h>
-#include <sys/stat.h>
-#include <errno.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/mman.h>
-#include <dirent.h>
-#include <ctype.h>
-#include <limits.h>
-#include <ftw.h>
-#include <stdbool.h>
 #include <blkid.h>
-#include <stdarg.h>
+#include <ctype.h>
+#include <dirent.h>
+#include <errno.h>
+#include <errno.h>
+#include <ftw.h>
+#include <getopt.h>
 #include <libgen.h>
+#include <limits.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/statfs.h>
+#include <unistd.h>
 
-#include "efivars.h"
 #include "common.h"
+#include "efivars.h"
 
-#define ELEMENTSOF(x) (sizeof(x)/sizeof((x)[0]))
-#define streq(a,b) (strcmp((a),(b)) == 0)
-#define UUID_EMPTY ((uint8_t[16]) {})
+#define ELEMENTSOF(x) (sizeof(x) / sizeof((x)[0]))
+#define streq(a, b) (strcmp((a), (b)) == 0)
+#define UUID_EMPTY ((uint8_t[16]){})
 
-static inline bool streq_ptr(const char *a, const char *b) {
+static inline bool streq_ptr(const char *a, const char *b)
+{
         if (a && b)
                 return streq(a, b);
         if (!a && !b)
@@ -55,21 +56,39 @@ static inline bool streq_ptr(const char *a, const char *b) {
         return false;
 }
 
-static inline bool isempty(const char *p) {
+static inline bool isempty(const char *p)
+{
         return !p || !p[0];
 }
 
-static inline const char *strna(const char *s) {
+static inline const char *strna(const char *s)
+{
         return isempty(s) ? "n/a" : s;
 }
 
-static int uuid_parse(const char *s, uint8_t uuid[16]) {
+static int uuid_parse(const char *s, uint8_t uuid[16])
+{
         int u[16];
         int i;
 
-        if (sscanf(s, "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
-            &u[0], &u[1], &u[2], &u[3], &u[4], &u[5], &u[6], &u[7],
-            &u[8], &u[9], &u[10], &u[11], &u[12], &u[13], &u[14], &u[15]) != 16)
+        if (sscanf(s,
+                   "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+                   &u[0],
+                   &u[1],
+                   &u[2],
+                   &u[3],
+                   &u[4],
+                   &u[5],
+                   &u[6],
+                   &u[7],
+                   &u[8],
+                   &u[9],
+                   &u[10],
+                   &u[11],
+                   &u[12],
+                   &u[13],
+                   &u[14],
+                   &u[15]) != 16)
                 return -EINVAL;
 
         for (i = 0; i < 16; i++)
@@ -78,7 +97,9 @@ static int uuid_parse(const char *s, uint8_t uuid[16]) {
         return 0;
 }
 
-static int verify_esp(const char *p, uint32_t *part, uint64_t *pstart, uint64_t *psize, uint8_t uuid[16]) {
+static int verify_esp(const char *p, uint32_t *part, uint64_t *pstart, uint64_t *psize,
+                      uint8_t uuid[16])
+{
         struct statfs sfs;
         struct stat st, st2;
         char *t;
@@ -92,7 +113,9 @@ static int verify_esp(const char *p, uint32_t *part, uint64_t *pstart, uint64_t 
         }
 
         if (sfs.f_type != 0x4d44) {
-                fprintf(stderr, "File system %s is not a FAT EFI System Partition (ESP) file system.\n", p);
+                fprintf(stderr,
+                        "File system %s is not a FAT EFI System Partition (ESP) file system.\n",
+                        p);
                 return -ENODEV;
         }
 
@@ -120,7 +143,10 @@ static int verify_esp(const char *p, uint32_t *part, uint64_t *pstart, uint64_t 
         }
 
         if (st.st_dev == st2.st_dev) {
-                fprintf(stderr, "Directory %s is not the root of the EFI System Partition (ESP) file system.\n", p);
+                fprintf(
+                    stderr,
+                    "Directory %s is not the root of the EFI System Partition (ESP) file system.\n",
+                    p);
                 return -ENODEV;
         }
 
@@ -173,7 +199,10 @@ static int verify_esp(const char *p, uint32_t *part, uint64_t *pstart, uint64_t 
         }
 
         if (strcmp(v, "vfat") != 0) {
-                fprintf(stderr, "File system %s is not a FAT EFI System Partition (ESP) file system after all.\n", p);
+                fprintf(stderr,
+                        "File system %s is not a FAT EFI System Partition (ESP) file system after "
+                        "all.\n",
+                        p);
                 r = -ENODEV;
                 goto fail;
         }
@@ -254,11 +283,11 @@ char *build_case_correct_path_va(const char *c, va_list ap)
 {
         char *p = NULL;
         char *root = NULL;
-        struct stat st = {0};
+        struct stat st = { 0 };
         DIR *dirn = NULL;
         struct dirent *ent = NULL;
 
-        p = (char*)c;
+        p = (char *)c;
 
         while (p) {
                 char *t = NULL;
@@ -297,7 +326,8 @@ char *build_case_correct_path_va(const char *c, va_list ap)
                         goto clean;
                 }
                 while ((ent = readdir(dirn)) != NULL) {
-                        if (strncmp(ent->d_name, ".", 1) == 0 || strncmp(ent->d_name, "..", 2) == 0) {
+                        if (strncmp(ent->d_name, ".", 1) == 0 ||
+                            strncmp(ent->d_name, "..", 2) == 0) {
                                 continue;
                         }
                         if (strcasecmp(ent->d_name, p) == 0) {
@@ -322,13 +352,13 @@ char *build_case_correct_path_va(const char *c, va_list ap)
                         }
                 }
                 closedir(dirn);
-clean:
+        clean:
 
                 free(dirp);
                 if (sav) {
                         free(sav);
                 }
-                p = va_arg(ap, char*);
+                p = va_arg(ap, char *);
         }
 
         return root;
@@ -338,7 +368,7 @@ clean:
  * Gradually build up a valid path, which may point within an existing
  * tree, to mitigate any case sensitivity issues on FAT32
  */
-__attribute__ ((sentinel(0))) char *build_case_correct_path(const char *c, ...)
+__attribute__((sentinel(0))) char *build_case_correct_path(const char *c, ...)
 {
         va_list ap;
 
@@ -350,9 +380,9 @@ __attribute__ ((sentinel(0))) char *build_case_correct_path(const char *c, ...)
         return ret;
 }
 
-
 /* search for "#### LoaderInfo: goofiboot 31 ####" string inside the binary */
-static int get_file_version(FILE *f, char **v) {
+static int get_file_version(FILE *f, char **v)
+{
         struct stat st;
         char *buf;
         const char *s, *e;
@@ -398,7 +428,8 @@ finish:
         return r;
 }
 
-static int enumerate_binaries(const char *full_path, const char *short_path, const char *prefix) {
+static int enumerate_binaries(const char *full_path, const char *short_path, const char *prefix)
+{
         struct dirent *de;
         char *q = NULL;
         DIR *d = NULL;
@@ -471,15 +502,33 @@ finish:
         return r;
 }
 
-static int status_binaries(const char *esp_path, uint8_t partition[16]) {
+static int status_binaries(const char *esp_path, uint8_t partition[16])
+{
         int r;
         char *path = NULL, *goofi_path = NULL;
 
         printf("Boot Loader Binaries:\n");
 
-        printf("          ESP: /dev/disk/by-partuuid/%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x\n",
-               partition[0], partition[1], partition[2], partition[3], partition[4], partition[5], partition[6], partition[7],
-               partition[8], partition[9], partition[10], partition[11], partition[12], partition[13], partition[14], partition[15]);
+        printf(
+            "          ESP: "
+            "/dev/disk/by-partuuid/"
+            "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x\n",
+            partition[0],
+            partition[1],
+            partition[2],
+            partition[3],
+            partition[4],
+            partition[5],
+            partition[6],
+            partition[7],
+            partition[8],
+            partition[9],
+            partition[10],
+            partition[11],
+            partition[12],
+            partition[13],
+            partition[14],
+            partition[15]);
 
         /* TODO: Split the short path automatically so the display is case-correct too */
         goofi_path = build_case_correct_path(esp_path, "EFI", "goofiboot", NULL);
@@ -502,7 +551,8 @@ static int status_binaries(const char *esp_path, uint8_t partition[16]) {
         return 0;
 }
 
-static int print_efi_option(uint16_t id, bool in_order) {
+static int print_efi_option(uint16_t id, bool in_order)
+{
         char *title = NULL;
         char *path = NULL;
         uint8_t partition[16];
@@ -520,9 +570,26 @@ static int print_efi_option(uint16_t id, bool in_order) {
         printf("        Title: %s\n", strna(title));
         printf("           ID: 0x%04X\n", id);
         printf("       Status: %sactive%s\n", active ? "" : "in", in_order ? ", boot-order" : "");
-        printf("    Partition: /dev/disk/by-partuuid/%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x\n",
-               partition[0], partition[1], partition[2], partition[3], partition[4], partition[5], partition[6], partition[7],
-               partition[8], partition[9], partition[10], partition[11], partition[12], partition[13], partition[14], partition[15]);
+        printf(
+            "    Partition: "
+            "/dev/disk/by-partuuid/"
+            "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x\n",
+            partition[0],
+            partition[1],
+            partition[2],
+            partition[3],
+            partition[4],
+            partition[5],
+            partition[6],
+            partition[7],
+            partition[8],
+            partition[9],
+            partition[10],
+            partition[11],
+            partition[12],
+            partition[13],
+            partition[14],
+            partition[15]);
         printf("         File: └─%s\n", path);
         printf("\n");
 
@@ -532,7 +599,8 @@ finish:
         return r;
 }
 
-static int status_variables(void) {
+static int status_variables(void)
+{
         int n_options, n_order;
         uint16_t *options = NULL, *order = NULL;
         int r, i;
@@ -545,10 +613,13 @@ static int status_variables(void) {
         n_options = efi_get_boot_options(&options);
         if (n_options < 0) {
                 if (n_options == -ENOENT)
-                        fprintf(stderr, "Failed to access EFI variables, "
+                        fprintf(stderr,
+                                "Failed to access EFI variables, "
                                 "efivarfs needs to be available at /sys/firmware/efi/efivars/.\n");
                 else
-                        fprintf(stderr, "Failed to read EFI boot entries: %s\n", strerror(-n_options));
+                        fprintf(stderr,
+                                "Failed to read EFI boot entries: %s\n",
+                                strerror(-n_options));
                 r = n_options;
                 goto finish;
         }
@@ -592,7 +663,8 @@ finish:
         return r;
 }
 
-static int compare_product(const char *a, const char *b) {
+static int compare_product(const char *a, const char *b)
+{
         size_t x, y;
 
         assert(a);
@@ -606,7 +678,8 @@ static int compare_product(const char *a, const char *b) {
         return strncmp(a, b, x);
 }
 
-static int compare_version(const char *a, const char *b) {
+static int compare_version(const char *a, const char *b)
+{
         assert(a);
         assert(b);
 
@@ -618,7 +691,8 @@ static int compare_version(const char *a, const char *b) {
         return strverscmp(a, b);
 }
 
-static int version_check(FILE *f, const char *from, const char *to) {
+static int version_check(FILE *f, const char *from, const char *to)
+{
         FILE *g = NULL;
         char *a = NULL, *b = NULL;
         int r;
@@ -659,7 +733,9 @@ static int version_check(FILE *f, const char *from, const char *to) {
 
         if (compare_version(a, b) < 0) {
                 r = -EEXIST;
-                fprintf(stderr, "Skipping %s, since it's a newer boot loader version already.\n", to);
+                fprintf(stderr,
+                        "Skipping %s, since it's a newer boot loader version already.\n",
+                        to);
                 goto finish;
         }
 
@@ -673,7 +749,8 @@ finish:
         return r;
 }
 
-static int copy_file(const char *from, const char *to, bool force) {
+static int copy_file(const char *from, const char *to, bool force)
+{
         FILE *f = NULL, *g = NULL;
         char *p = NULL;
         int r;
@@ -718,7 +795,7 @@ static int copy_file(const char *from, const char *to, bool force) {
         rewind(f);
         do {
                 size_t k;
-                uint8_t buf[32*1024];
+                uint8_t buf[32 * 1024];
 
                 k = fread(buf, 1, sizeof(buf), f);
                 if (ferror(f)) {
@@ -785,7 +862,8 @@ finish:
         return r;
 }
 
-static char* strupper(char *s) {
+static char *strupper(char *s)
+{
         char *p;
 
         for (p = s; *p; p++)
@@ -794,7 +872,8 @@ static char* strupper(char *s) {
         return s;
 }
 
-__attribute__((sentinel(0))) static int mkdir_one(const char *c, ...) {
+__attribute__((sentinel(0))) static int mkdir_one(const char *c, ...)
+{
         char *p = NULL;
         va_list ap;
 
@@ -820,7 +899,8 @@ __attribute__((sentinel(0))) static int mkdir_one(const char *c, ...) {
         return 0;
 }
 
-static int create_dirs(const char *esp_path) {
+static int create_dirs(const char *esp_path)
+{
         int r;
 
         r = mkdir_one(esp_path, "EFI", NULL);
@@ -846,7 +926,8 @@ static int create_dirs(const char *esp_path) {
         return 0;
 }
 
-static int copy_one_file(const char *esp_path, const char *name, bool force) {
+static int copy_one_file(const char *esp_path, const char *name, bool force)
+{
         char *p = NULL, *q = NULL, *v = NULL;
         int r;
 
@@ -868,7 +949,7 @@ static int copy_one_file(const char *esp_path, const char *name, bool force) {
                 int k;
 
                 /* Create the EFI default boot loader name (specified for removable devices) */
-                if (!(v = build_case_correct_path(esp_path, "EFI", "Boot", name+5, NULL))) {
+                if (!(v = build_case_correct_path(esp_path, "EFI", "Boot", name + 5, NULL))) {
                         fprintf(stderr, "Out of memory.\n");
                         r = -ENOMEM;
                         goto finish;
@@ -889,7 +970,8 @@ finish:
         return r;
 }
 
-static int install_binaries(const char *esp_path, bool force) {
+static int install_binaries(const char *esp_path, bool force)
+{
         struct dirent *de;
         DIR *d;
         int r = 0;
@@ -907,7 +989,7 @@ static int install_binaries(const char *esp_path, bool force) {
 
         d = opendir(GOOFIBOOTLIBDIR);
         if (!d) {
-                fprintf(stderr, "Failed to open "GOOFIBOOTLIBDIR": %m\n");
+                fprintf(stderr, "Failed to open " GOOFIBOOTLIBDIR ": %m\n");
                 return -errno;
         }
 
@@ -931,7 +1013,8 @@ static int install_binaries(const char *esp_path, bool force) {
         return r;
 }
 
-static bool same_entry(uint16_t id, const uint8_t uuid[16], const char *path) {
+static bool same_entry(uint16_t id, const uint8_t uuid[16], const char *path)
+{
         char *opath = NULL;
         uint8_t ouuid[16];
         int err;
@@ -953,7 +1036,8 @@ finish:
         return same;
 }
 
-static int find_slot(const uint8_t uuid[16], const char *path, uint16_t *id) {
+static int find_slot(const uint8_t uuid[16], const char *path, uint16_t *id)
+{
         uint16_t *options = NULL;
         int n_options;
         int i;
@@ -990,7 +1074,8 @@ finish:
         return existing;
 }
 
-static int insert_into_order(uint16_t slot, bool first) {
+static int insert_into_order(uint16_t slot, bool first)
+{
         uint16_t *order = NULL;
         uint16_t *new_order;
         int n_order;
@@ -1025,7 +1110,7 @@ static int insert_into_order(uint16_t slot, bool first) {
         }
 
         /* extend array */
-        new_order = realloc(order, (n_order+1) * sizeof(uint16_t));
+        new_order = realloc(order, (n_order + 1) * sizeof(uint16_t));
         if (!new_order) {
                 err = -ENOMEM;
                 goto finish;
@@ -1039,14 +1124,15 @@ static int insert_into_order(uint16_t slot, bool first) {
         } else
                 order[n_order] = slot;
 
-        efi_set_boot_order(order, n_order+1);
+        efi_set_boot_order(order, n_order + 1);
 
 finish:
         free(order);
         return err;
 }
 
-static int remove_from_order(uint16_t slot) {
+static int remove_from_order(uint16_t slot)
+{
         uint16_t *order = NULL;
         int n_order;
         int i;
@@ -1062,9 +1148,9 @@ static int remove_from_order(uint16_t slot) {
                 if (order[i] != slot)
                         continue;
 
-                if (i+1 < n_order)
-                        memmove(&order[i], &order[i+1], (n_order - i) * sizeof(uint16_t));
-                efi_set_boot_order(order, n_order-1);
+                if (i + 1 < n_order)
+                        memmove(&order[i], &order[i + 1], (n_order - i) * sizeof(uint16_t));
+                efi_set_boot_order(order, n_order - 1);
                 break;
         }
 
@@ -1072,10 +1158,9 @@ static int remove_from_order(uint16_t slot) {
         return err;
 }
 
-static int install_variables(const char *esp_path,
-                             uint32_t part, uint64_t pstart, uint64_t psize,
-                             const uint8_t uuid[16], const char *path,
-                             bool first) {
+static int install_variables(const char *esp_path, uint32_t part, uint64_t pstart, uint64_t psize,
+                             const uint8_t uuid[16], const char *path, bool first)
+{
         char *p = NULL;
         uint16_t *options = NULL;
         uint16_t slot;
@@ -1102,18 +1187,28 @@ static int install_variables(const char *esp_path,
         r = find_slot(uuid, path, &slot);
         if (r < 0) {
                 if (r == -ENOENT)
-                        fprintf(stderr, "Failed to access EFI variables. Is the \"efivarfs\" filesystem mounted?\n");
+                        fprintf(stderr,
+                                "Failed to access EFI variables. Is the \"efivarfs\" filesystem "
+                                "mounted?\n");
                 else
-                        fprintf(stderr, "Failed to determine current boot order: %s\n", strerror(-r));
+                        fprintf(stderr,
+                                "Failed to determine current boot order: %s\n",
+                                strerror(-r));
                 goto finish;
         }
 
         if (first || r == false) {
-                r = efi_add_boot_option(slot, "Linux Boot Manager",
-                                        part, pstart, psize,
-                                        uuid, path);
+                r = efi_add_boot_option(slot,
+                                        "Linux Boot Manager",
+                                        part,
+                                        pstart,
+                                        psize,
+                                        uuid,
+                                        path);
                 if (r < 0) {
-                        fprintf(stderr, "Failed to create EFI Boot variable entry: %s\n", strerror(-r));
+                        fprintf(stderr,
+                                "Failed to create EFI Boot variable entry: %s\n",
+                                strerror(-r));
                         goto finish;
                 }
                 fprintf(stderr, "Created EFI boot entry \"Linux Boot Manager\".\n");
@@ -1127,7 +1222,9 @@ finish:
         return r;
 }
 
-static int delete_nftw(const char *path, __unused__ const struct stat *sb, int typeflag, __unused__ struct FTW *ftw) {
+static int delete_nftw(const char *path, __unused__ const struct stat *sb, int typeflag,
+                       __unused__ struct FTW *ftw)
+{
         int r;
 
         if (typeflag == FTW_D || typeflag == FTW_DNR || typeflag == FTW_DP)
@@ -1143,12 +1240,14 @@ static int delete_nftw(const char *path, __unused__ const struct stat *sb, int t
         return 0;
 }
 
-static int rm_rf(const char *p) {
-        nftw(p, delete_nftw, 20, FTW_DEPTH|FTW_MOUNT|FTW_PHYS);
+static int rm_rf(const char *p)
+{
+        nftw(p, delete_nftw, 20, FTW_DEPTH | FTW_MOUNT | FTW_PHYS);
         return 0;
 }
 
-static int remove_boot_efi(const char *esp_path) {
+static int remove_boot_efi(const char *esp_path)
+{
         struct dirent *de;
         char *p = NULL, *q = NULL;
         DIR *d = NULL;
@@ -1208,7 +1307,6 @@ static int remove_boot_efi(const char *esp_path) {
                         goto finish;
 
                 if (r > 0 && strncmp(v, "goofiboot ", 10) == 0) {
-
                         r = unlink(q);
                         if (r < 0) {
                                 fprintf(stderr, "Failed to remove %s: %m\n", q);
@@ -1234,7 +1332,8 @@ finish:
         return r;
 }
 
-static int rmdir_one(const char *prefix, ...) {
+static int rmdir_one(const char *prefix, ...)
+{
         char *p = NULL;
         va_list ap;
 
@@ -1260,8 +1359,8 @@ static int rmdir_one(const char *prefix, ...) {
         return 0;
 }
 
-
-static int remove_binaries(const char *esp_path) {
+static int remove_binaries(const char *esp_path)
+{
         char *p;
         int r, q;
 
@@ -1300,7 +1399,8 @@ static int remove_binaries(const char *esp_path) {
         return r;
 }
 
-static int remove_variables(const uint8_t uuid[16], const char *path, bool in_order) {
+static int remove_variables(const uint8_t uuid[16], const char *path, bool in_order)
+{
         uint16_t slot;
         int r;
 
@@ -1321,7 +1421,8 @@ static int remove_variables(const uint8_t uuid[16], const char *path, bool in_or
         return 0;
 }
 
-static int install_loader_config(const char *esp_path) {
+static int install_loader_config(const char *esp_path)
+{
         char *p = NULL;
         char line[64];
         char *machine = NULL;
@@ -1362,21 +1463,23 @@ static int install_loader_config(const char *esp_path) {
         return 0;
 }
 
-static int help(void) {
-        printf("%s [COMMAND] [OPTIONS...]\n"
-               "\n"
-               "Install, update or remove the Goofiboot EFI boot loader.\n\n"
-               "  -h --help          Show this help\n"
-               "     --version       Print version\n"
-               "     --path=PATH     Path to the EFI System Partition (ESP)\n"
-               "     --no-variables  Don't touch EFI variables\n"
-               "\n"
-               "Comands:\n"
-               "     status          Show status of installed Goofiboot and EFI variables\n"
-               "     install         Install Goofiboot to the ESP and EFI variables\n"
-               "     update          Update Goofiboot in the ESP and EFI variables\n"
-               "     remove          Remove Goofiboot from the ESP and EFI variables\n",
-               program_invocation_short_name);
+static int help(void)
+{
+        printf(
+            "%s [COMMAND] [OPTIONS...]\n"
+            "\n"
+            "Install, update or remove the Goofiboot EFI boot loader.\n\n"
+            "  -h --help          Show this help\n"
+            "     --version       Print version\n"
+            "     --path=PATH     Path to the EFI System Partition (ESP)\n"
+            "     --no-variables  Don't touch EFI variables\n"
+            "\n"
+            "Comands:\n"
+            "     status          Show status of installed Goofiboot and EFI variables\n"
+            "     install         Install Goofiboot to the ESP and EFI variables\n"
+            "     update          Update Goofiboot in the ESP and EFI variables\n"
+            "     remove          Remove Goofiboot from the ESP and EFI variables\n",
+            program_invocation_short_name);
 
         return 0;
 }
@@ -1385,22 +1488,21 @@ static const char *arg_path = NULL;
 static bool arg_touch_variables = true;
 static bool arg_force = false;
 
-static int parse_argv(int argc, char *argv[]) {
-        enum {
-                ARG_PATH = 0x100,
-                ARG_VERSION,
-                ARG_NO_VARIABLES,
-                ARG_FORCE,
+static int parse_argv(int argc, char *argv[])
+{
+        enum { ARG_PATH = 0x100,
+               ARG_VERSION,
+               ARG_NO_VARIABLES,
+               ARG_FORCE,
         };
 
-        static const struct option options[] = {
-                { "help",         no_argument,       NULL, 'h'              },
-                { "version",      no_argument,       NULL, ARG_VERSION      },
-                { "path",         required_argument, NULL, ARG_PATH         },
-                { "no-variables", no_argument,       NULL, ARG_NO_VARIABLES },
-                { "force",        no_argument,       NULL, ARG_FORCE        },
-                { NULL,           0,                 NULL, 0                }
-        };
+        static const struct option options[] =
+            { { "help", no_argument, NULL, 'h' },
+              { "version", no_argument, NULL, ARG_VERSION },
+              { "path", required_argument, NULL, ARG_PATH },
+              { "no-variables", no_argument, NULL, ARG_NO_VARIABLES },
+              { "force", no_argument, NULL, ARG_FORCE },
+              { NULL, 0, NULL, 0 } };
 
         int c;
 
@@ -1409,7 +1511,6 @@ static int parse_argv(int argc, char *argv[]) {
 
         while ((c = getopt_long(argc, argv, "h", options, NULL)) >= 0) {
                 switch (c) {
-
                 case 'h':
                         help();
                         return 0;
@@ -1442,7 +1543,8 @@ static int parse_argv(int argc, char *argv[]) {
         return 1;
 }
 
-int main(int argc, char*argv[]) {
+int main(int argc, char *argv[])
+{
         enum action {
                 ACTION_STATUS,
                 ACTION_INSTALL,
@@ -1451,13 +1553,13 @@ int main(int argc, char*argv[]) {
         } arg_action = ACTION_STATUS;
 
         static const struct {
-                const char* verb;
+                const char *verb;
                 enum action action;
         } verbs[] = {
-                { "status",  ACTION_STATUS },
+                { "status", ACTION_STATUS },
                 { "install", ACTION_INSTALL },
-                { "update",  ACTION_UPDATE },
-                { "remove",  ACTION_REMOVE },
+                { "update", ACTION_UPDATE },
+                { "remove", ACTION_REMOVE },
         };
 
         uint8_t uuid[16] = "";
@@ -1503,7 +1605,9 @@ int main(int argc, char*argv[]) {
 
         r = verify_esp(arg_path, &part, &pstart, &psize, uuid);
         if (r == -ENODEV && !arg_path)
-                fprintf(stderr, "You might want to use --path= to indicate the path to your ESP, in case it is not mounted to /boot.\n");
+                fprintf(stderr,
+                        "You might want to use --path= to indicate the path to your ESP, in case "
+                        "it is not mounted to /boot.\n");
         if (r < 0 && !arg_force)
                 goto finish;
 
@@ -1530,7 +1634,10 @@ int main(int argc, char*argv[]) {
 
                 if (arg_touch_variables && !arg_force)
                         r = install_variables(arg_path,
-                                              part, pstart, psize, uuid,
+                                              part,
+                                              pstart,
+                                              psize,
+                                              uuid,
                                               "/EFI/goofiboot/goofiboot" MACHINE_TYPE_NAME ".efi",
                                               arg_action == ACTION_INSTALL);
                 break;
@@ -1539,7 +1646,9 @@ int main(int argc, char*argv[]) {
                 r = remove_binaries(arg_path);
 
                 if (arg_touch_variables && !arg_force) {
-                        q = remove_variables(uuid, "/EFI/goofiboot/goofiboot" MACHINE_TYPE_NAME ".efi", true);
+                        q = remove_variables(uuid,
+                                             "/EFI/goofiboot/goofiboot" MACHINE_TYPE_NAME ".efi",
+                                             true);
                         if (q < 0 && r == 0)
                                 r = q;
                 }

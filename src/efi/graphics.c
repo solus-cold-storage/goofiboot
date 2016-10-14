@@ -20,12 +20,13 @@
 #include <efi.h>
 #include <efilib.h>
 
-#include "util.h"
 #include "graphics.h"
+#include "util.h"
 
-EFI_STATUS graphics_mode(BOOLEAN on) {
-        #define EFI_CONSOLE_CONTROL_PROTOCOL_GUID \
-                { 0xf42f7782, 0x12e, 0x4c12, { 0x99, 0x56, 0x49, 0xf9, 0x43, 0x4, 0xf7, 0x21 } };
+EFI_STATUS graphics_mode(BOOLEAN on)
+{
+#define EFI_CONSOLE_CONTROL_PROTOCOL_GUID                                                          \
+        { 0xf42f7782, 0x12e, 0x4c12, { 0x99, 0x56, 0x49, 0xf9, 0x43, 0x4, 0xf7, 0x21 } };
 
         struct _EFI_CONSOLE_CONTROL_PROTOCOL;
 
@@ -35,22 +36,22 @@ EFI_STATUS graphics_mode(BOOLEAN on) {
                 EfiConsoleControlScreenMaxValue,
         } EFI_CONSOLE_CONTROL_SCREEN_MODE;
 
-        typedef EFI_STATUS (EFIAPI *EFI_CONSOLE_CONTROL_PROTOCOL_GET_MODE)(
-                struct _EFI_CONSOLE_CONTROL_PROTOCOL *This,
-                EFI_CONSOLE_CONTROL_SCREEN_MODE *Mode,
-                BOOLEAN *UgaExists,
-                BOOLEAN *StdInLocked
-        );
+        typedef EFI_STATUS(
+            EFIAPI * EFI_CONSOLE_CONTROL_PROTOCOL_GET_MODE)(struct _EFI_CONSOLE_CONTROL_PROTOCOL *
+                                                                This,
+                                                            EFI_CONSOLE_CONTROL_SCREEN_MODE * Mode,
+                                                            BOOLEAN * UgaExists,
+                                                            BOOLEAN * StdInLocked);
 
-        typedef EFI_STATUS (EFIAPI *EFI_CONSOLE_CONTROL_PROTOCOL_SET_MODE)(
-                struct _EFI_CONSOLE_CONTROL_PROTOCOL *This,
-                EFI_CONSOLE_CONTROL_SCREEN_MODE Mode
-        );
+        typedef EFI_STATUS(
+            EFIAPI * EFI_CONSOLE_CONTROL_PROTOCOL_SET_MODE)(struct _EFI_CONSOLE_CONTROL_PROTOCOL *
+                                                                This,
+                                                            EFI_CONSOLE_CONTROL_SCREEN_MODE Mode);
 
-        typedef EFI_STATUS (EFIAPI *EFI_CONSOLE_CONTROL_PROTOCOL_LOCK_STD_IN)(
-                struct _EFI_CONSOLE_CONTROL_PROTOCOL *This,
-                CHAR16 *Password
-        );
+        typedef EFI_STATUS(
+            EFIAPI *
+            EFI_CONSOLE_CONTROL_PROTOCOL_LOCK_STD_IN)(struct _EFI_CONSOLE_CONTROL_PROTOCOL * This,
+                                                      CHAR16 * Password);
 
         typedef struct _EFI_CONSOLE_CONTROL_PROTOCOL {
                 EFI_CONSOLE_CONTROL_PROTOCOL_GET_MODE GetMode;
@@ -73,12 +74,17 @@ EFI_STATUS graphics_mode(BOOLEAN on) {
         }
 
         /* check current mode */
-        err = uefi_call_wrapper(ConsoleControl->GetMode, 4, ConsoleControl, &current, &uga_exists, &stdin_locked);
+        err = uefi_call_wrapper(ConsoleControl->GetMode,
+                                4,
+                                ConsoleControl,
+                                &current,
+                                &uga_exists,
+                                &stdin_locked);
         if (EFI_ERROR(err))
                 return err;
 
         /* do not touch the mode */
-        new  = on ? EfiConsoleControlScreenGraphics : EfiConsoleControlScreenText;
+        new = on ? EfiConsoleControlScreenGraphics : EfiConsoleControlScreenText;
         if (new == current)
                 return EFI_SUCCESS;
 
@@ -121,7 +127,8 @@ struct bmp_map {
 } __attribute__((packed));
 
 EFI_STATUS bmp_parse_header(UINT8 *bmp, UINTN size, struct bmp_dib **ret_dib,
-                            struct bmp_map **ret_map, UINT8 **pixmap) {
+                            struct bmp_map **ret_map, UINT8 **pixmap)
+{
         struct bmp_file *file;
         struct bmp_dib *dib;
         struct bmp_map *map;
@@ -166,7 +173,7 @@ EFI_STATUS bmp_parse_header(UINT8 *bmp, UINTN size, struct bmp_dib **ret_dib,
         }
 
         row_size = (((dib->depth * dib->x) + 31) / 32) * 4;
-        if (file->size - file->offset <  dib->y * row_size)
+        if (file->size - file->offset < dib->y * row_size)
                 return EFI_INVALID_PARAMETER;
         if (row_size * dib->y > 64 * 1024 * 1024)
                 return EFI_INVALID_PARAMETER;
@@ -208,7 +215,8 @@ EFI_STATUS bmp_parse_header(UINT8 *bmp, UINTN size, struct bmp_dib **ret_dib,
         return EFI_SUCCESS;
 }
 
-static VOID pixel_blend(UINT32 *dst, const UINT32 source) {
+static VOID pixel_blend(UINT32 *dst, const UINT32 source)
+{
         UINT32 alpha, src, src_rb, src_g, dst_rb, dst_g, rb, g;
 
         alpha = (source & 0xff);
@@ -218,21 +226,21 @@ static VOID pixel_blend(UINT32 *dst, const UINT32 source) {
 
         /* decompose into RB and G components */
         src_rb = (src & 0xff00ff);
-        src_g  = (src & 0x00ff00);
+        src_g = (src & 0x00ff00);
 
         dst_rb = (*dst & 0xff00ff);
-        dst_g  = (*dst & 0x00ff00);
+        dst_g = (*dst & 0x00ff00);
 
         /* blend */
         rb = ((((src_rb - dst_rb) * alpha + 0x800080) >> 8) + dst_rb) & 0xff00ff;
-        g  = ((((src_g  -  dst_g) * alpha + 0x008000) >> 8) +  dst_g) & 0x00ff00;
+        g = ((((src_g - dst_g) * alpha + 0x008000) >> 8) + dst_g) & 0x00ff00;
 
         *dst = (rb | g);
 }
 
-EFI_STATUS bmp_to_blt(EFI_GRAPHICS_OUTPUT_BLT_PIXEL *buf,
-                      struct bmp_dib *dib, struct bmp_map *map,
-                      UINT8 *pixmap) {
+EFI_STATUS bmp_to_blt(EFI_GRAPHICS_OUTPUT_BLT_PIXEL *buf, struct bmp_dib *dib, struct bmp_map *map,
+                      UINT8 *pixmap)
+{
         UINT8 *in;
         UINTN y;
 
@@ -286,7 +294,7 @@ EFI_STATUS bmp_to_blt(EFI_GRAPHICS_OUTPUT_BLT_PIXEL *buf,
                                 break;
 
                         case 16: {
-                                UINT16 i = *(UINT16 *) in;
+                                UINT16 i = *(UINT16 *)in;
 
                                 out->Red = (i & 0x7c00) >> 7;
                                 out->Green = (i & 0x3e0) >> 2;
@@ -303,7 +311,7 @@ EFI_STATUS bmp_to_blt(EFI_GRAPHICS_OUTPUT_BLT_PIXEL *buf,
                                 break;
 
                         case 32: {
-                                UINT32 i = *(UINT32 *) in;
+                                UINT32 i = *(UINT32 *)in;
 
                                 pixel_blend((UINT32 *)out, i);
 
@@ -322,7 +330,8 @@ EFI_STATUS bmp_to_blt(EFI_GRAPHICS_OUTPUT_BLT_PIXEL *buf,
 }
 
 EFI_STATUS graphics_splash(EFI_FILE *root_dir, CHAR16 *path,
-                           const EFI_GRAPHICS_OUTPUT_BLT_PIXEL *background) {
+                           const EFI_GRAPHICS_OUTPUT_BLT_PIXEL *background)
+{
         EFI_GUID GraphicsOutputProtocolGuid = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
         EFI_GRAPHICS_OUTPUT_PROTOCOL *GraphicsOutput = NULL;
         UINT8 *content;
@@ -348,16 +357,23 @@ EFI_STATUS graphics_splash(EFI_FILE *root_dir, CHAR16 *path,
         if (EFI_ERROR(err))
                 goto err;
 
-        if(dib->x < GraphicsOutput->Mode->Info->HorizontalResolution)
+        if (dib->x < GraphicsOutput->Mode->Info->HorizontalResolution)
                 x_pos = (GraphicsOutput->Mode->Info->HorizontalResolution - dib->x) / 2;
-        if(dib->y < GraphicsOutput->Mode->Info->VerticalResolution)
+        if (dib->y < GraphicsOutput->Mode->Info->VerticalResolution)
                 y_pos = (GraphicsOutput->Mode->Info->VerticalResolution - dib->y) / 2;
 
-        uefi_call_wrapper(GraphicsOutput->Blt, 10, GraphicsOutput,
+        uefi_call_wrapper(GraphicsOutput->Blt,
+                          10,
+                          GraphicsOutput,
                           (EFI_GRAPHICS_OUTPUT_BLT_PIXEL *)background,
-                          EfiBltVideoFill, 0, 0, 0, 0,
+                          EfiBltVideoFill,
+                          0,
+                          0,
+                          0,
+                          0,
                           GraphicsOutput->Mode->Info->HorizontalResolution,
-                          GraphicsOutput->Mode->Info->VerticalResolution, 0);
+                          GraphicsOutput->Mode->Info->VerticalResolution,
+                          0);
 
         /* EFI buffer */
         blt_size = dib->x * dib->y * sizeof(EFI_GRAPHICS_OUTPUT_BLT_PIXEL);
@@ -365,9 +381,18 @@ EFI_STATUS graphics_splash(EFI_FILE *root_dir, CHAR16 *path,
         if (!blt)
                 return EFI_OUT_OF_RESOURCES;
 
-        err = uefi_call_wrapper(GraphicsOutput->Blt, 10, GraphicsOutput,
-                                blt, EfiBltVideoToBltBuffer, x_pos, y_pos, 0, 0,
-                                dib->x, dib->y, 0);
+        err = uefi_call_wrapper(GraphicsOutput->Blt,
+                                10,
+                                GraphicsOutput,
+                                blt,
+                                EfiBltVideoToBltBuffer,
+                                x_pos,
+                                y_pos,
+                                0,
+                                0,
+                                dib->x,
+                                dib->y,
+                                0);
         if (EFI_ERROR(err))
                 goto err;
 
@@ -379,9 +404,18 @@ EFI_STATUS graphics_splash(EFI_FILE *root_dir, CHAR16 *path,
         if (EFI_ERROR(err))
                 goto err;
 
-        err = uefi_call_wrapper(GraphicsOutput->Blt, 10, GraphicsOutput,
-                                blt, EfiBltBufferToVideo, 0, 0, x_pos, y_pos,
-                                dib->x, dib->y, 0);
+        err = uefi_call_wrapper(GraphicsOutput->Blt,
+                                10,
+                                GraphicsOutput,
+                                blt,
+                                EfiBltBufferToVideo,
+                                0,
+                                0,
+                                x_pos,
+                                y_pos,
+                                dib->x,
+                                dib->y,
+                                0);
 err:
         FreePool(blt);
         FreePool(content);

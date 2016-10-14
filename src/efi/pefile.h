@@ -18,6 +18,6 @@
 #ifndef __GOOFIBOOT_PEFILE_H
 #define __GOOFIBOOT_PEFILE_H
 
-EFI_STATUS pefile_locate_sections(EFI_FILE *dir, CHAR16 *path,
-                                  CHAR8 **sections, UINTN *addrs, UINTN *offsets, UINTN *sizes);
+EFI_STATUS pefile_locate_sections(EFI_FILE *dir, CHAR16 *path, CHAR8 **sections, UINTN *addrs,
+                                  UINTN *offsets, UINTN *sizes);
 #endif

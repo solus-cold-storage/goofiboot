@@ -12,6 +12,6 @@
 #ifndef _GOOFIBOOT_COMMON_H
 #define _GOOFIBOOT_COMMON_H
 
-#define __unused__ __attribute__ ((unused))
+#define __unused__ __attribute__((unused))
 
 #endif /*_GOOFIBOOT_COMMON_H */
