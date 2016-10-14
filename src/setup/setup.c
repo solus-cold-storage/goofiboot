@@ -43,6 +43,9 @@
 #include "common.h"
 #include "efivars.h"
 
+DEF_AUTOFREE(DIR, closedir)
+DEF_AUTOFREE(char, free)
+
 #define ELEMENTSOF(x) (sizeof(x) / sizeof((x)[0]))
 #define streq(a, b) (strcmp((a), (b)) == 0)
 #define UUID_EMPTY ((uint8_t[16]){})
@@ -283,8 +286,7 @@ char *build_case_correct_path_va(const char *c, va_list ap)
 {
         char *p = NULL;
         char *root = NULL;
-        struct stat st = { 0 };
-        DIR *dirn = NULL;
+        struct stat st = {.st_ino = 0 };
         struct dirent *ent = NULL;
 
         p = (char *)c;
@@ -292,6 +294,7 @@ char *build_case_correct_path_va(const char *c, va_list ap)
         while (p) {
                 char *t = NULL;
                 char *sav = NULL;
+                autofree(DIR) *dirn = NULL;
 
                 if (!root) {
                         root = strdup(p);
@@ -299,8 +302,11 @@ char *build_case_correct_path_va(const char *c, va_list ap)
                         sav = strdup(root);
 
                         if (!asprintf(&t, "%s/%s", root, p)) {
-                                fprintf(stderr, "Out of memory\n");
+                                fprintf(stderr, "build_case_correct_path_va: Out of memory\n");
                                 va_end(ap);
+                                if (sav) {
+                                        free(sav);
+                                }
                                 return NULL;
                         }
                         free(root);
@@ -308,7 +314,7 @@ char *build_case_correct_path_va(const char *c, va_list ap)
                         t = NULL;
                 }
 
-                char *dirp = strdup(root);
+                autofree(char) *dirp = strdup(root);
                 char *dir = dirname(dirp);
 
                 if (stat(dir, &st) != 0) {
@@ -317,7 +323,8 @@ char *build_case_correct_path_va(const char *c, va_list ap)
                 if (!S_ISDIR(st.st_mode)) {
                         goto clean;
                 }
-                /* Iterate the directory and find the case insensitive name, using
+                /* Iterate the directory and find the case insensitive name,
+                 * using
                  * this if it exists. Otherwise continue with the non existent
                  * path
                  */
@@ -333,28 +340,31 @@ char *build_case_correct_path_va(const char *c, va_list ap)
                         if (strcasecmp(ent->d_name, p) == 0) {
                                 if (sav) {
                                         if (!asprintf(&t, "%s/%s", sav, ent->d_name)) {
-                                                fprintf(stderr, "Out of memory\n");
+                                                fprintf(stderr,
+                                                        "build_case_correct_path_va: Out "
+                                                        "of memory\n");
                                                 return NULL;
                                         }
                                         free(root);
                                         root = t;
                                         t = NULL;
                                 } else {
-                                        free(root);
-                                        root = NULL;
-                                        root = strdup(sav);
-                                        if (!root) {
-                                                fprintf(stderr, "Out of memory\n");
-                                                return NULL;
+                                        if (root) {
+                                                sav = strdup(root);
+                                                free(root);
+                                                root = NULL;
+                                                if (!sav) {
+                                                        fprintf(stderr,
+                                                                "build_case_correct_path_va: Out "
+                                                                "of memory\n");
+                                                        return NULL;
+                                                }
                                         }
                                 }
                                 break;
                         }
                 }
-                closedir(dirn);
         clean:
-
-                free(dirp);
                 if (sav) {
                         free(sav);
                 }
