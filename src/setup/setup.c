@@ -1635,7 +1635,7 @@ int main(int argc, char *argv[])
                 if (arg_action == ACTION_INSTALL)
                         install_loader_config(arg_path);
 
-                if (arg_touch_variables && !arg_force)
+                if (arg_touch_variables)
                         r = install_variables(arg_path,
                                               part,
                                               pstart,
@@ -1648,7 +1648,7 @@ int main(int argc, char *argv[])
         case ACTION_REMOVE:
                 r = remove_binaries(arg_path);
 
-                if (arg_touch_variables && !arg_force) {
+                if (arg_touch_variables) {
                         q = remove_variables(uuid,
                                              "/EFI/goofiboot/goofiboot" MACHINE_TYPE_NAME ".efi",
                                              true);
