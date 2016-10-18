@@ -18,7 +18,7 @@
 #  along with goofiboot; If not, see <http://www.gnu.org/licenses/>.
 
 AC_INIT([goofiboot],
-        [50],
+        [51],
         [ikey@solus-project.com],
         [goofiboot],
         [https://github.com/solus-project/goofiboot])
