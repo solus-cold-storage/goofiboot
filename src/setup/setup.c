@@ -766,6 +766,7 @@ static int copy_file(const char *from, const char *to, bool force)
         int r;
         struct timespec t[2];
         struct stat st;
+        struct stat st_to;
 
         assert(from);
         assert(to);
@@ -848,11 +849,29 @@ static int copy_file(const char *from, const char *to, bool force)
                 goto finish;
         }
 
+        /* Due to the case sensitivity issue and the way we get case compatible paths,
+         * the target path may actually exist. On FAT it is ill advised to rename a file,
+         * rather you should remove it first
+         */
+        if (stat(to, &st_to) == 0) {
+                if (unlink(to) < 0) {
+                        fprintf(stderr, "Failed to remove existing file %s: %m\n", to);
+                        r = -errno;
+                        goto finish;
+                }
+        }
+
+        /* Sync existing writes and deletes */
+        sync();
+
         if (rename(p, to) < 0) {
                 fprintf(stderr, "Failed to rename %s to %s: %m\n", p, to);
                 r = -errno;
                 goto finish;
         }
+
+        /* Sync now with rename */
+        sync();
 
         fprintf(stderr, "Copied %s to %s.\n", from, to);
 
