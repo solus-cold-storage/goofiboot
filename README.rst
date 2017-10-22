@@ -28,7 +28,7 @@ file fragments, kernels, initrds, other EFI images need to reside on the
 ESP. Linux kernels must be built with CONFIG_EFI_STUB to be able to be
 directly executed as an EFI image.
 
-goofiboot reads simple and entirely generic configurion files; one file
+goofiboot reads simple and entirely generic configuration files; one file
 per boot entry to select from.
 
 Pressing Space (or most other) keys during bootup will show an on-screen
